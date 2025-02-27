@@ -1,12 +1,11 @@
 import requests
 import random
 import time
-import json
 
 ANKI_CONNECT_URL = "http://127.0.0.1:8765"
 
 
-def get_cards_from_deck(deck_name):
+def get_cards_from_deck(deck_name, timestamp):
     """Retrieves all cards from a specified deck using AnkiConnect."""
     payload = {
         "action": "findNotes",
@@ -29,19 +28,23 @@ def get_cards_from_deck(deck_name):
     }
     response = requests.post(ANKI_CONNECT_URL, json=payload).json()
 
+
+    print(response.get("result", []))
+
     cards = []
     for note in response.get("result", []):
-        fields = note["fields"]
-        cards.append({
-            "note_id": note["noteId"],
-            "deck_id": note["modelName"],
-            "question": fields["Front"]["value"],
-            "answer": fields["Back"]["value"],
-            "tags": " ".join(note["tags"]),
-            "created_at": note["noteId"],
-            "last_modified": int(time.time()),
-            "interval": 1
-        })
+        if note["mod"] > timestamp:
+            fields = note["fields"]
+            cards.append({
+                "note_id": note["noteId"],
+                "deck_id": note["modelName"],
+                "question": fields["Front"]["value"],
+                "answer": fields["Back"]["value"],
+                "tags": " ".join(note["tags"]),
+                "created_at": note["noteId"],
+                "last_modified": note["mod"],
+                "interval": 1
+            })
 
     return cards
 
@@ -117,7 +120,7 @@ if __name__ == "__main__":
     deck_name = "TestDeck"  # Change this to your target deck
 
     print(f"Fetching cards from '{deck_name}'...")
-    cards = get_cards_from_deck(deck_name)
+    cards = get_cards_from_deck(deck_name, 0)
     print_cards_simple(cards)
 
     print(f"Syncing new card to '{deck_name}'...")
