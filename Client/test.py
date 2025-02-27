@@ -1,3 +1,4 @@
+from aqt import mw
 import hashlib
 import sqlite3
 import random
@@ -130,16 +131,22 @@ def print_cards_simple(card_list):
         print(f"Etiquetas: {card['tags']}")
         print(f"Intervalo: {card['interval']} días")
 
-        # Convertir timestamp a fecha legible
         from datetime import datetime
         modified_date = datetime.fromtimestamp(card['last_modified']).strftime('%Y-%m-%d %H:%M:%S')
         print(f"Última modificación: {modified_date}")
         print("-" * 80)
 
+def check_and_fix_database():
+    mw.col.checkDatabase()
+    mw.col.save()
+    print("Database checked and fixed.")
+
 
 if __name__ == "__main__":
-    source_db = "PathToOriginDB"
-    target_db = "PathToTargetDB"
+    f = open("pathToDatabase", "r")
+    path = f.read()
+    source_db = path
+    target_db = path
     deck_name = "TestDeck"
 
     print(f"Fetching cards from '{deck_name}'...")
@@ -153,3 +160,5 @@ if __name__ == "__main__":
     sync_card(target_db, generate_random_card())
 
     print("Sync complete!")
+
+    check_and_fix_database()
