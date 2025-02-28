@@ -28,9 +28,6 @@ def get_cards_from_deck(deck_name, timestamp):
     }
     response = requests.post(ANKI_CONNECT_URL, json=payload).json()
 
-
-    print(response.get("result", []))
-
     cards = []
     for note in response.get("result", []):
         if note["mod"] > timestamp:
@@ -120,11 +117,13 @@ if __name__ == "__main__":
     deck_name = "TestDeck"  # Change this to your target deck
 
     print(f"Fetching cards from '{deck_name}'...")
-    cards = get_cards_from_deck(deck_name, 0)
+    cards = get_cards_from_deck(deck_name, 1740659441)
     print_cards_simple(cards)
 
+'''
     print(f"Syncing new card to '{deck_name}'...")
     sync_card(deck_name, generate_random_card(deck_name))
 
     print("Sync complete! Triggering AnkiWeb sync...")
     sync_anki()
+'''
