@@ -140,7 +140,7 @@ def list_decks():
 
 
 if __name__ == "__main__":
-    deck_name = 'Kaishi 1.5k'  # Change this to your target deck
+    deck_name = 'Kaishi 1.5k'
 
     print(f"Fetching cards from '{deck_name}'...")
     cards = get_cards_from_deck(deck_name, 0)
