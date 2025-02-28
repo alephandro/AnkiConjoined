@@ -10,7 +10,9 @@ def get_cards_from_deck(deck_name, timestamp):
     payload = {
         "action": "findNotes",
         "version": 6,
-        "params": {"query": f"deck:{deck_name}"}
+        "params": {
+            "query": f"deck:\"{deck_name}\""
+        }
     }
 
     response = requests.post(ANKI_CONNECT_URL, json=payload).json()
@@ -32,11 +34,13 @@ def get_cards_from_deck(deck_name, timestamp):
     for note in response.get("result", []):
         if note["mod"] > timestamp:
             fields = note["fields"]
+
+            field_data = {field_name: field_info["value"] for field_name, field_info in fields.items()}
+
             cards.append({
                 "note_id": note["noteId"],
                 "deck_id": note["modelName"],
-                "question": fields["Front"]["value"],
-                "answer": fields["Back"]["value"],
+                "fields": field_data,
                 "tags": " ".join(note["tags"]),
                 "created_at": note["noteId"],
                 "last_modified": note["mod"],
@@ -96,11 +100,16 @@ def print_cards_simple(card_list):
 
     for i, card in enumerate(card_list, 1):
         print(f"Tarjeta #{i}")
-        print(f"Pregunta: {card['question']}")
-        print(f"Respuesta: {card['answer']}")
+        print(f"Note ID: {card['note_id']}")
+        print(f"Deck: {card['deck_id']}")
+
+        for field_name, field_value in card["fields"].items():
+            print(f"{field_name}: {field_value}")
+
         print(f"Etiquetas: {card['tags']}")
         print(f"Última modificación: {card['last_modified']}")
         print("-" * 80)
+
 
 
 def sync_anki():
@@ -113,11 +122,28 @@ def sync_anki():
         print("✅ Sync successful!")
 
 
+def list_decks():
+    """Fetches all deck names from Anki via AnkiConnect."""
+    payload = {
+        "action": "deckNames",
+        "version": 6
+    }
+
+    response = requests.post(ANKI_CONNECT_URL, json=payload)
+    data = response.json()
+
+    if data.get("error"):
+        print("Error:", data["error"])
+        return []
+
+    return data.get("result", [])
+
+
 if __name__ == "__main__":
-    deck_name = "TestDeck"  # Change this to your target deck
+    deck_name = 'Kaishi 1.5k'  # Change this to your target deck
 
     print(f"Fetching cards from '{deck_name}'...")
-    cards = get_cards_from_deck(deck_name, 1740659441)
+    cards = get_cards_from_deck(deck_name, 0)
     print_cards_simple(cards)
 
 '''
