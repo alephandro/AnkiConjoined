@@ -50,28 +50,76 @@ def get_cards_from_deck(deck_name, timestamp):
     return cards
 
 
-def sync_card(deck_name, card_data):
+def sync_card(card_data):
     """Syncs a single card (insert/update) using AnkiConnect."""
-    payload = {
-        "action": "addNotes",
+    check_payload = {
+        "action": "notesInfo",
         "version": 6,
         "params": {
-            "notes": [{
-                "deckName": deck_name,
-                "modelName": "Basic",
-                "fields": {
-                    "Front": card_data["question"],
-                    "Back": card_data["answer"]
-                },
-                "tags": card_data["tags"].split(),
-                "options": {"allowDuplicate": False}
-            }]
+            "notes": [card_data["note_id"]]
         }
     }
+    check_response = requests.post(ANKI_CONNECT_URL, json=check_payload).json()
+    print(check_response)
 
-    response = requests.post(ANKI_CONNECT_URL, json=payload).json()
-    print("Sync Response:", response)
+    if check_response.get("result"):
+        update_payload = {
+            "action": "updateNoteFields",
+            "version": 6,
+            "params": {
+                "note": {
+                    "id": card_data["note_id"],
+                    "fields": card_data["fields"]
+                }
+            }
+        }
+        update_response = requests.post(ANKI_CONNECT_URL, json=update_payload).json()
+        print("Update Response:", update_response)
+        # update_note_tags(card_data["note_id"], card_data["tags"])
+        sync_anki()
+        return update_response
 
+    else:
+        tags = card_data["tags"].split() if isinstance(card_data["tags"], str) else card_data["tags"]
+
+        payload = {
+            "action": "addNote",
+            "version": 6,
+            "params": {
+                "note": {
+                    "deckName": card_data["deck_name"],
+                    "modelName": card_data["model_name"],
+                    "fields": card_data["fields"],
+                    "tags": tags,
+                    "options": {
+                        "allowDuplicate": False
+                    }
+                }
+            }
+        }
+
+        response = requests.post(ANKI_CONNECT_URL, json=payload).json()
+        print("Add Note Response:", response)
+        sync_anki()
+        return response
+
+
+def update_note_tags(note_id, tags):
+    """Updates the tags for a specific note."""
+    tags_str = tags if isinstance(tags, str) else " ".join(tags)
+
+    tags_payload = {
+        "action": "replaceTags",
+        "version": 6,
+        "params": {
+            "notes": [note_id],
+            "tags": tags_str
+        }
+    }
+    tags_response = requests.post(ANKI_CONNECT_URL, json=tags_payload).json()
+    print("Tags Update Response:", tags_response)
+
+    return tags_response
 
 def generate_random_card(deck_name):
     """Generates a random test card with unique IDs and timestamps."""
@@ -140,7 +188,7 @@ def list_decks():
 
 
 if __name__ == "__main__":
-    deck_name = 'Kaishi 1.5k'
+    deck_name = 'TestDeck'
 
     print(f"Fetching cards from '{deck_name}'...")
     cards = get_cards_from_deck(deck_name, 0)
