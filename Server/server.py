@@ -5,14 +5,15 @@ import os
 
 
 class Server:
-    def __init__(self, host="localhost", port=9999, json_file="anki_cards.json"):
+    HEADER = 64
+
+    def __init__(self, host="localhost", port=9999):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.bind((host, port))
         self.sock.listen()
-        self.json_file = json_file
+        self.json_file = ""
 
         print(f"Server listening on {host}:{port}")
-        print(f"Data will be stored in: {json_file}")
 
         try:
             while True:
@@ -24,6 +25,25 @@ class Server:
             self.sock.close()
 
     def handle_client(self, conn):
+        try:
+            choice = conn.recv(1).decode("utf-8")
+            match choice:
+                case "0":
+                    print("User is sending their updated/new cards")
+                    deck_name_size = conn.recv(self.HEADER).decode("utf-8")
+                    deck_name = conn.recv(int(deck_name_size)).decode("utf-8")
+                    self.json_file = deck_name + ".json"
+                    self.add_cards(conn)
+                case "1":
+                    print("Sending the updated/new cards based on the user's timestamp")
+                case _:
+                    print("Invalid choice")
+        except Exception as e:
+            print(f"Error: {e}")
+        finally:
+            conn.close()
+
+    def add_cards(self, conn):
         try:
             data_chunks = []
             while True:
@@ -42,16 +62,14 @@ class Server:
 
             self.save_cards_to_json(cards)
 
-
-            ''' 
-            Acknowledge for future implementation
-            conn.sendall("Cards received and saved successfully".encode("utf-8"))
-            '''
+            # Send success response
+            print("Sending success response (1)")
+            conn.sendall(str(1).encode("utf-8"))
 
         except Exception as e:
             print(f"Error: {e}")
-        finally:
-            conn.close()
+            print("Sending error response (0)")
+            conn.sendall(str(0).encode("utf-8"))
 
     def save_cards_to_json(self, new_cards):
         """Save cards to JSON file, merging with existing data if the file exists."""
