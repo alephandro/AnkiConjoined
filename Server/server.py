@@ -3,6 +3,8 @@ import threading
 import json
 import os
 
+from DataManagement.cards_management import collect_cards
+
 
 class Server:
     HEADER = 64
@@ -27,15 +29,19 @@ class Server:
     def handle_client(self, conn):
         try:
             choice = conn.recv(1).decode("utf-8")
+            deck_name_size = conn.recv(self.HEADER).decode("utf-8")
+            deck_name = conn.recv(int(deck_name_size)).decode("utf-8")
+            self.json_file = deck_name + ".json"
             match choice:
                 case "0":
                     print("User is sending their updated/new cards")
-                    deck_name_size = conn.recv(self.HEADER).decode("utf-8")
-                    deck_name = conn.recv(int(deck_name_size)).decode("utf-8")
-                    self.json_file = deck_name + ".json"
                     self.add_cards(conn)
                 case "1":
                     print("Sending the updated/new cards based on the user's timestamp")
+                    timestamp_length = conn.recv(int(self.HEADER)).decode("utf-8")
+                    timestamp = conn.recv(int(timestamp_length)).decode("utf-8")
+                    cards = self.retrieve_cards_from_json(int(timestamp))
+                    conn.send(json.dumps(cards).encode("utf-8"))
                 case _:
                     print("Invalid choice")
         except Exception as e:
@@ -45,24 +51,9 @@ class Server:
 
     def add_cards(self, conn):
         try:
-            data_chunks = []
-            while True:
-                chunk = conn.recv(4096)
-                if not chunk:
-                    break
-                data_chunks.append(chunk)
-
-            if not data_chunks:
-                print("No data received")
-                return
-
-            decoded_data = b''.join(data_chunks).decode("utf-8")
-            cards = json.loads(decoded_data)
-            print(f"Received {len(cards)} cards")
-
+            cards = collect_cards(conn)
             self.save_cards_to_json(cards)
 
-            # Send success response
             print("Sending success response (1)")
             conn.sendall(str(1).encode("utf-8"))
 
@@ -109,7 +100,18 @@ class Server:
 
         print(f"JSON updated: {new_count} new cards, {updated_count} cards updated")
 
+    def retrieve_cards_from_json(self, timestamp):
+        """Retrieve the newer/updated cards from JSON file based on the timestamp introduced as parameter."""
+        cards = {}
+        try:
+            with open(self.json_file, "r") as infile:
+                cards = json.load(infile)
+            print(f"Loaded {len(cards)} existing cards from {self.json_file}")
+        except json.JSONDecodeError:
+            print(f"Error reading {self.json_file}, will create a new file")
+
+        return {k: v for k, v in cards.items() if v["last_modified"] * 1000 > timestamp}
 
 # --- main ---
 if __name__ == "__main__":
-    Server()
+    server = Server()
