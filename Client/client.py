@@ -2,17 +2,16 @@ import socket
 import json
 import time
 
-from Client.testAnkiConnected import SYNC_FILE_PATH
 from DataManagement.cards_management import collect_cards
-from testAnkiConnected import get_cards_from_deck
+from testAnkiConnected import get_cards_from_deck, SYNC_FILE_PATH
 from testAnkiConnected import sync_card
 from testAnkiConnected import update_sync_log_json
 from testAnkiConnected import get_timestamp_from_json
+from testAnkiConnected import sync_anki
 
 
 class Client:
     HEADER = 64
-    SYNC_FILE_PATH = "sync_log.json"
 
     def __init__(self, host="localhost", port=9999):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -50,11 +49,13 @@ class Client:
             self.sock.shutdown(socket.SHUT_WR)
 
             cards = collect_cards(self.sock)
+            '''TODO: PARALELIZAR ESTA WEA'''
             for key, value in cards.items():
                 sync_card(value)
 
             print("Cards collected, updating sync log...")
             update_sync_log_json(SYNC_FILE_PATH, deck_name, int(time.time()))
+            sync_anki()
         except Exception as e:
             print(f"Error: {e}")
         finally:

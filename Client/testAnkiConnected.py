@@ -104,7 +104,6 @@ def sync_card(card_data):
         update_response = requests.post(ANKI_CONNECT_URL, json=update_payload).json()
         print("Update Response:", update_response)
         # update_note_tags(card_data["note_id"], card_data["tags"])
-        sync_anki()
         return update_response
 
     else:
