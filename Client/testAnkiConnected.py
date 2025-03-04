@@ -1,11 +1,13 @@
 import requests
 import random
 import time
+import json
 
 ANKI_CONNECT_URL = "http://127.0.0.1:8765"
+SYNC_FILE_PATH = "sync_log.json"
 
 
-def get_cards_from_deck(deck_name, timestamp):
+def get_cards_from_deck(deck_name):
     """Retrieves all cards from a specified deck using AnkiConnect."""
     payload = {
         "action": "findNotes",
@@ -31,24 +33,50 @@ def get_cards_from_deck(deck_name, timestamp):
     response = requests.post(ANKI_CONNECT_URL, json=payload).json()
 
     cards = []
+    target_timestamp = get_timestamp_from_json(SYNC_FILE_PATH, deck_name)
     for note in response.get("result", []):
-        if note["mod"] > timestamp:
+        if note["mod"] > target_timestamp:
             fields = note["fields"]
 
             field_data = {field_name: field_info["value"] for field_name, field_info in fields.items()}
 
             cards.append({
                 "note_id": note["noteId"],
-                "deck_id": note["modelName"],
+                "deck_name": deck_name,
+                "model_name": note["modelName"],
                 "fields": field_data,
                 "tags": " ".join(note["tags"]),
                 "created_at": note["noteId"],
                 "last_modified": note["mod"],
                 "interval": 1
             })
-
+    if cards:
+        lc_timestamp = cards[-1]["last_modified"]
+        update_sync_log_json(SYNC_FILE_PATH, deck_name, lc_timestamp)
     return cards
 
+def update_sync_log_json(file_path, deck_name, timestamp):
+    """Creates an entry in a json file or updates an existing one."""
+    try:
+        with open(file_path, "r") as file:
+            data = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        data = {}
+
+    data[deck_name] = timestamp  # Update or add the deck
+
+    with open(file_path, "w") as file:
+        json.dump(data, file, indent=4)
+
+def get_timestamp_from_json(file_path, deck_name):
+    """Returns the timestamp of a deck. If the deck does not exist, returns 0."""
+    try:
+        with open(file_path, "r") as file:
+            data = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        data = {}
+
+    return data.get(deck_name, 0)
 
 def sync_card(card_data):
     """Syncs a single card (insert/update) using AnkiConnect."""
@@ -60,9 +88,9 @@ def sync_card(card_data):
         }
     }
     check_response = requests.post(ANKI_CONNECT_URL, json=check_payload).json()
-    print(check_response)
+    print(check_response.get("result"))
 
-    if check_response.get("result"):
+    if check_response.get("result") and any(check_response["result"]):
         update_payload = {
             "action": "updateNoteFields",
             "version": 6,
@@ -122,19 +150,22 @@ def update_note_tags(note_id, tags):
     return tags_response
 
 def generate_random_card(deck_name):
-    """Generates a random test card with unique IDs and timestamps."""
+    """Generates a random test card matching the stored JSON format."""
     timestamp = int(time.time())
     random_id = random.randint(10 ** 12, 10 ** 13 - 1)
 
     return {
-        "note_id": random_id,
-        "deck_id": deck_name,
-        "question": f"Test Question {random.randint(1, 100)}",
-        "answer": f"Test Answer {random.randint(1, 100)}",
-        "tags": "test",
-        "created_at": timestamp,
-        "last_modified": timestamp,
-        "interval": 1
+            "note_id": random_id,
+            "deck_name": deck_name,
+            "model_name": "Basic",
+            "fields": {
+                "Front": f"Test Question {random.randint(1, 100)}",
+                "Back": f"Test Answer {random.randint(1, 100)}"
+            },
+            "tags": "test",
+            "created_at": random_id,  # Assuming it's same as note_id
+            "last_modified": timestamp,
+            "interval": 1
     }
 
 
@@ -149,7 +180,8 @@ def print_cards_simple(card_list):
     for i, card in enumerate(card_list, 1):
         print(f"Tarjeta #{i}")
         print(f"Note ID: {card['note_id']}")
-        print(f"Deck: {card['deck_id']}")
+        print(f"Deck: {card['deck_name']}")
+        print(f"Model: {card['model_name']}")
 
         for field_name, field_value in card["fields"].items():
             print(f"{field_name}: {field_value}")
@@ -188,16 +220,13 @@ def list_decks():
 
 
 if __name__ == "__main__":
-    deck_name = 'TestDeck'
+    deck_name = 'Kaishi 1.5k'
 
     print(f"Fetching cards from '{deck_name}'...")
-    cards = get_cards_from_deck(deck_name, 0)
+    cards = get_cards_from_deck(deck_name)
     print_cards_simple(cards)
 
-'''
-    print(f"Syncing new card to '{deck_name}'...")
-    sync_card(deck_name, generate_random_card(deck_name))
-
-    print("Sync complete! Triggering AnkiWeb sync...")
-    sync_anki()
-'''
+    '''print(f"Syncing new card to '{deck_name}'...")
+    card = generate_random_card(deck_name)
+    print(card)
+    sync_card(card)'''

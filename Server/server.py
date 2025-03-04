@@ -110,7 +110,7 @@ class Server:
         except json.JSONDecodeError:
             print(f"Error reading {self.json_file}, will create a new file")
 
-        return {k: v for k, v in cards.items() if v["last_modified"] * 1000 > timestamp}
+        return {k: v for k, v in cards.items() if v["last_modified"] > timestamp}
 
 # --- main ---
 if __name__ == "__main__":
