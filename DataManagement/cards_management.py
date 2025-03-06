@@ -1,4 +1,5 @@
 import json
+import uuid
 
 
 def collect_cards(soc):
@@ -22,3 +23,8 @@ def collect_cards(soc):
 
     except Exception as e:
         print(f"Error: {e}")
+
+
+def generate_stable_uid():
+    """Generate a stable unique identifier that won't change even if card content changes."""
+    return str(uuid.uuid4())
