@@ -37,7 +37,7 @@ class Server:
                     print("User is sending their updated/new cards")
                     self.add_cards(conn)
                 case "1":
-                    print("Sending the updated/new cards based on the user's timestamp")
+                    print("\n\n\nSending the updated/new cards based on the user's timestamp")
                     timestamp_length = conn.recv(int(self.HEADER)).decode("utf-8")
                     timestamp = conn.recv(int(timestamp_length)).decode("utf-8")
                     cards = self.retrieve_cards_from_json(int(timestamp))

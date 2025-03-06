@@ -57,9 +57,6 @@ def get_cards_from_deck(deck_name):
                 "last_modified": note["mod"],
                 "interval": 1
             })
-    if cards:
-        lc_timestamp = cards[-1]["last_modified"]
-        update_json(SYNC_FILE_PATH, deck_name, lc_timestamp)
     return cards
 
 

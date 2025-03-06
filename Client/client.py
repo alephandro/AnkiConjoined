@@ -9,18 +9,25 @@ from testAnkiConnected import (get_cards_from_deck, SYNC_FILE_PATH, sync_card, u
 
 class Client:
     HEADER = 64
+    HOST = "127.0.0.1"
+    PORT = 9999
 
-    def __init__(self, host="localhost", port=9999):
+
+    def __init__(self):
+        self.sock = None
+
+
+    def connect_to_server(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((host, port))
+        self.sock.connect((self.HOST, self.PORT))
         print("Connected to server.")
 
 
     def send_cards(self, deck_name):
         print("Fetching cards...")
-
         cards = get_cards_from_deck(deck_name)
         try:
+            self.connect_to_server()
             self.sock.sendall(str(0).encode("utf-8"))
             self.send_size_and_package(deck_name)
             json_data = json.dumps(cards)
@@ -41,6 +48,7 @@ class Client:
 
     def receive_cards(self, deck_name):
         try:
+            self.connect_to_server()
             timestamp = get_value_from_json(SYNC_FILE_PATH, deck_name)
             self.sock.sendall(str(1).encode("utf-8"))
             self.send_size_and_package(deck_name)
@@ -53,9 +61,7 @@ class Client:
             for key, value in cards.items():
                 sync_card(value)
 
-            print("Cards collected, updating sync log...")
-            update_json(SYNC_FILE_PATH, deck_name, int(time.time()))
-            sync_anki()
+            print("Cards collected.")
         except Exception as e:
             print(f"Error: {e}")
         finally:
@@ -111,10 +117,18 @@ class Client:
         self.sock.sendall(info_encoded)
 
 
+def workflow_simulation(client, selection, deck_name):
+    client.receive_cards(deck_name)
+    if selection == 0:
+        client.send_cards(deck_name)
+    update_json(SYNC_FILE_PATH, deck_name, int(time.time()))
+    sync_anki()
+
+
 # --- main ---
 if __name__ == "__main__":
     client = Client()
-    client.send_cards("TestDeck")
-    #client.receive_cards("TestDeck")
+    workflow_simulation(client, 0, "TestDeck")
+
 
 
