@@ -5,9 +5,10 @@ import time
 from DataManagement.cards_management import collect_cards
 from testAnkiConnected import get_cards_from_deck, SYNC_FILE_PATH
 from testAnkiConnected import sync_card
-from testAnkiConnected import update_sync_log_json
-from testAnkiConnected import get_timestamp_from_json
+from testAnkiConnected import update_json
+from testAnkiConnected import get_value_from_json
 from testAnkiConnected import sync_anki
+from testAnkiConnected import check_for_deck_existence
 
 
 class Client:
@@ -42,19 +43,20 @@ class Client:
 
     def receive_cards(self, deck_name):
         try:
-            timestamp = get_timestamp_from_json(SYNC_FILE_PATH, deck_name)
+            timestamp = get_value_from_json(SYNC_FILE_PATH, deck_name)
             self.sock.sendall(str(1).encode("utf-8"))
             self.send_size_and_package(deck_name)
             self.send_size_and_package(timestamp)
             self.sock.shutdown(socket.SHUT_WR)
 
             cards = collect_cards(self.sock)
+            check_for_deck_existence(deck_name)
             '''TODO: PARALELIZAR ESTA WEA'''
             for key, value in cards.items():
                 sync_card(value)
 
             print("Cards collected, updating sync log...")
-            update_sync_log_json(SYNC_FILE_PATH, deck_name, int(time.time()))
+            update_json(SYNC_FILE_PATH, deck_name, int(time.time()))
             sync_anki()
         except Exception as e:
             print(f"Error: {e}")
