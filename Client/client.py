@@ -3,12 +3,8 @@ import json
 import time
 
 from DataManagement.cards_management import collect_cards
-from testAnkiConnected import get_cards_from_deck, SYNC_FILE_PATH
-from testAnkiConnected import sync_card
-from testAnkiConnected import update_json
-from testAnkiConnected import get_value_from_json
-from testAnkiConnected import sync_anki
-from testAnkiConnected import check_for_deck_existence
+from testAnkiConnected import (get_cards_from_deck, SYNC_FILE_PATH, sync_card, update_json,
+                               get_value_from_json, sync_anki, check_for_deck_existence)
 
 
 class Client:
@@ -18,6 +14,7 @@ class Client:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((host, port))
         print("Connected to server.")
+
 
     def send_cards(self, deck_name):
         print("Fetching cards...")
@@ -41,6 +38,7 @@ class Client:
         finally:
             self.sock.close()
 
+
     def receive_cards(self, deck_name):
         try:
             timestamp = get_value_from_json(SYNC_FILE_PATH, deck_name)
@@ -51,7 +49,7 @@ class Client:
 
             cards = collect_cards(self.sock)
             check_for_deck_existence(deck_name)
-            '''TODO: PARALELIZAR ESTA WEA'''
+
             for key, value in cards.items():
                 sync_card(value)
 
@@ -112,10 +110,11 @@ class Client:
         self.sock.sendall(info_length)
         self.sock.sendall(info_encoded)
 
+
 # --- main ---
 if __name__ == "__main__":
     client = Client()
-    # client.send_cards("TestDeck")
-    client.receive_cards("TestDeck")
+    client.send_cards("TestDeck")
+    #client.receive_cards("TestDeck")
 
 
