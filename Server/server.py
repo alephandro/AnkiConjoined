@@ -3,7 +3,7 @@ import threading
 import json
 import os
 
-from DataManagement.cards_management import collect_cards
+from DataManagement.cards_management import collect_cards, generate_stable_uid
 
 
 class Server:
@@ -73,8 +73,8 @@ class Server:
 
                     if isinstance(existing_data, list):
                         for card in existing_data:
-                            if "note_id" in card:
-                                all_cards[str(card["note_id"])] = card
+                            if "stable_uid" in card:
+                                all_cards[str(card["stable_uid"])] = card
 
                     elif isinstance(existing_data, dict):
                         all_cards = existing_data
@@ -87,12 +87,16 @@ class Server:
         new_count = 0
 
         for card in new_cards:
-            if str(card["note_id"]) in all_cards:
-                if card.get("last_modified", 0) > all_cards[str(card["note_id"])].get("last_modified", 0):
-                    all_cards[str(card["note_id"])] = card
+            if not card.get("stable_uid"):
+                card["stable_uid"] = generate_stable_uid()
+                all_cards[card["stable_uid"]] = card
+                new_count += 1
+            elif str(card["stable_uid"]) in all_cards:
+                if card.get("last_modified", 0) > all_cards[str(card["stable_uid"])].get("last_modified", 0):
+                    all_cards[str(card["stable_uid"])] = card
                     updated_count += 1
             else:
-                all_cards[str(card["note_id"])] = card
+                all_cards[str(card["stable_uid"])] = card
                 new_count += 1
 
         with open(self.json_file, "w") as outfile:
