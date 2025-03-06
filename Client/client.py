@@ -64,6 +64,44 @@ class Client:
             self.sock.close()
 
 
+    '''def sync_cards_parallel(self, cards):
+        if not cards:
+            print("No cards to sync.")
+            return 0, 0
+
+        max_workers = min(10, len(cards))
+        print(f"Syncing {len(cards)} cards with {max_workers} parallel workers...")
+
+        completed = 0
+        successes = 0
+        failures = 0
+        total = len(cards)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_card = {executor.submit(sync_card, value): key for key, value in cards.items()}
+
+            for future in concurrent.futures.as_completed(future_to_card):
+                card_key = future_to_card[future]
+                try:
+                    result = future.result()
+                    if isinstance(result, dict) and result.get("error"):
+                        failures += 1
+                        print(f"\nCard {card_key} error: {result['error']}")
+                    else:
+                        successes += 1
+                except Exception as exc:
+                    failures += 1
+                    print(f"\nCard {card_key} exception: {exc}")
+                finally:
+                    completed += 1
+                    progress = completed / total * 100
+                    sys.stdout.write(f"\rProgress: {progress:.1f}% ({completed}/{total})")
+                    sys.stdout.flush()
+
+        print(f"\nSync completed: {successes} cards synced successfully, {failures} failures")
+        return successes, failures'''
+
+
     def send_size_and_package(self, info):
         if not isinstance(info, str):
             info = str(info)
