@@ -231,7 +231,7 @@ def list_decks():
 
 
 def generate_random_deck_code():
-    with open('random_words', 'r') as file:
+    with open('../DataManagement/random_words', 'r') as file:
         words = [word.strip() for word in file if len(word.strip()) > 3]
     selected_words = random.sample(words, 5)
     return "+".join(selected_words)
