@@ -132,15 +132,21 @@ def sync_card(card_data):
         return response
 
 
-def check_for_deck_existence(deck_name):
-    """Retrieves all decks for checking purposes. If the deck does not exist, the function creates it."""
+def list_decks():
+    """Fetches all deck names from Anki via AnkiConnect."""
     payload = {
         "action": "deckNames",
         "version": 6
     }
 
     response = requests.post(ANKI_CONNECT_URL, json=payload).json()
-    decks = response.get("result", [])
+    return response.get("result", [])
+
+
+
+def check_for_deck_existence(deck_name):
+    """Retrieves all decks for checking purposes. If the deck does not exist, the function creates it."""
+    decks = list_decks()
     if not deck_name in decks:
         create_deck(deck_name)
 
@@ -210,23 +216,6 @@ def sync_anki():
         print("❌ Sync failed:", response["error"])
     else:
         print("✅ Sync successful!")
-
-
-def list_decks():
-    """Fetches all deck names from Anki via AnkiConnect."""
-    payload = {
-        "action": "deckNames",
-        "version": 6
-    }
-
-    response = requests.post(ANKI_CONNECT_URL, json=payload)
-    data = response.json()
-
-    if data.get("error"):
-        print("Error:", data["error"])
-        return []
-
-    return data.get("result", [])
 
 
 
