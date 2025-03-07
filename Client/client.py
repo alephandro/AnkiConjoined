@@ -3,8 +3,9 @@ import json
 import time
 
 from DataManagement.cards_management import collect_cards
-from testAnkiConnected import (get_cards_from_deck, SYNC_FILE_PATH, sync_card, update_json,
-                               get_value_from_json, sync_anki, check_for_deck_existence)
+from testAnkiConnected import (SYNC_FILE_PATH, DECKS_CODES_PATH, get_cards_from_deck, sync_card, update_json,
+                               get_value_from_json, sync_anki, check_for_deck_existence,
+                               get_code_from_deck, create_deck)
 
 
 class Client:
@@ -29,7 +30,8 @@ class Client:
         try:
             self.connect_to_server()
             self.sock.sendall(str(0).encode("utf-8"))
-            self.send_size_and_package(deck_name)
+            deck_code = get_code_from_deck(deck_name)
+            self.send_size_and_package(deck_code)
             json_data = json.dumps(cards)
             self.sock.sendall(json_data.encode("utf-8"))
             self.sock.shutdown(socket.SHUT_WR)
@@ -51,7 +53,8 @@ class Client:
             self.connect_to_server()
             timestamp = get_value_from_json(SYNC_FILE_PATH, deck_name)
             self.sock.sendall(str(1).encode("utf-8"))
-            self.send_size_and_package(deck_name)
+            deck_code = get_code_from_deck(deck_name)
+            self.send_size_and_package(deck_code)
             self.send_size_and_package(timestamp)
             self.sock.shutdown(socket.SHUT_WR)
 
@@ -66,6 +69,32 @@ class Client:
             print(f"Error: {e}")
         finally:
             self.sock.close()
+
+
+    def receive_deck_from_code(self, deck_code):
+        try:
+            self.connect_to_server()
+            self.sock.sendall(str(2).encode("utf-8"))
+            self.send_size_and_package(deck_code)
+            self.sock.shutdown(socket.SHUT_WR)
+
+            cards = collect_cards(self.sock)
+            first_key = next(iter(cards))
+            deck_name = cards[first_key]["deck_name"]
+            create_deck(deck_name)
+
+            for key, value in cards.items():
+                sync_card(value)
+
+            update_json(DECKS_CODES_PATH, deck_name, deck_code)
+            update_json(SYNC_FILE_PATH, deck_name, int(time.time()))
+            sync_anki()
+
+        except Exception as e:
+            print(f"Error: {e}")
+        finally:
+            self.sock.close()
+
 
 
     '''def sync_cards_parallel(self, cards):
@@ -117,9 +146,13 @@ class Client:
         self.sock.sendall(info_encoded)
 
 
-def workflow_simulation(client, selection, deck_name):
-    client.receive_cards(deck_name)
-    if selection == 0:
+def workflow_simulation(client, create, receive, deck_name, new):
+    if new:
+        client.receive_deck_from_code(deck_name)
+        return
+    if receive:
+        client.receive_cards(deck_name)
+    if create:
         client.send_cards(deck_name)
     update_json(SYNC_FILE_PATH, deck_name, int(time.time()))
     sync_anki()
@@ -128,7 +161,19 @@ def workflow_simulation(client, selection, deck_name):
 # --- main ---
 if __name__ == "__main__":
     client = Client()
-    workflow_simulation(client, 0, "TestDeck")
+    deck_name = "TestDeck"
+    action = "new_deck"
+
+    match action:
+        case "create":
+            workflow_simulation(client, True, False, deck_name, False)
+        case "receive":
+            workflow_simulation(client, False, True, deck_name, False)
+        case "update":
+            workflow_simulation(client, True, True, deck_name, False)
+        case "new_deck":
+            workflow_simulation(client, True, False,
+                                "expert+garden+seen+fountain+territory",True)
 
 
 

@@ -42,6 +42,10 @@ class Server:
                     timestamp = conn.recv(int(timestamp_length)).decode("utf-8")
                     cards = self.retrieve_cards_from_json(int(timestamp))
                     conn.send(json.dumps(cards).encode("utf-8"))
+                case "2":
+                    print("\n\n\nSending new deck to de user")
+                    cards = self.retrieve_cards_from_json(0)
+                    conn.send(json.dumps(cards).encode("utf-8"))
                 case _:
                     print("Invalid choice")
         except Exception as e:

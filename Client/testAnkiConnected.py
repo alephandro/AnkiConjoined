@@ -5,6 +5,7 @@ import json
 
 ANKI_CONNECT_URL = "http://127.0.0.1:8765"
 SYNC_FILE_PATH = "sync_log.json"
+DECKS_CODES_PATH = "decks_codes.json"
 
 
 def get_cards_from_deck(deck_name):
@@ -178,7 +179,7 @@ def sync_card(card_data):
         return
 
     matching_note = find_card_with_matching_fields(card_data)
-    if matching_note is not None:
+    if len(matching_note) > 0:
         card_data["note_id"] = matching_note[0]
         update_card(card_data, tags)
         update_tags(card_data, tags)
@@ -272,19 +273,27 @@ def sync_anki():
 
 def generate_random_deck_code():
     with open('../DataManagement/random_words', 'r') as file:
-        words = [word.strip() for word in file if len(word.strip()) > 3]
+        words = [word.strip() for word in file if 3 < len(word.strip()) < 11]
     selected_words = random.sample(words, 5)
     return "+".join(selected_words)
+
+
+def get_code_from_deck(deck_name):
+    deck_code = get_value_from_json(DECKS_CODES_PATH, deck_name)
+    if deck_code == 0:
+        deck_code = generate_random_deck_code()
+        update_json(DECKS_CODES_PATH, deck_name, deck_code)
+    return deck_code
 
 
 if __name__ == "__main__":
     deck_name = 'TestDeck'
 
-    print(f"Fetching cards from '{deck_name}'...")
+    '''print(f"Fetching cards from '{deck_name}'...")
     cards = get_cards_from_deck(deck_name)
-    print_cards_simple(cards)
+    print_cards_simple(cards)'''
 
-    print(generate_random_deck_code())
+    print(get_code_from_deck(deck_name))
 
     '''print(f"Syncing new card to '{deck_name}'...")
     card = generate_random_card(deck_name)
