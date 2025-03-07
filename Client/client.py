@@ -79,6 +79,9 @@ class Client:
             self.sock.shutdown(socket.SHUT_WR)
 
             cards = collect_cards(self.sock)
+            if cards is None:
+                print(f"There is no deck with code {deck_code}")
+                return
             first_key = next(iter(cards))
             deck_name = cards[first_key]["deck_name"]
             create_deck(deck_name)
@@ -173,7 +176,7 @@ if __name__ == "__main__":
             workflow_simulation(client, True, True, deck_name, False)
         case "new_deck":
             workflow_simulation(client, True, False,
-                                "expert+garden+seen+fountain+territory",True)
+                                "expert+garden+seen+kweo+territory",True)
 
 
 

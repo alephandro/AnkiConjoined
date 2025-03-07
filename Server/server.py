@@ -15,7 +15,7 @@ class Server:
         self.sock.listen()
         self.json_file = ""
 
-        print(f"Server listening on {host}:{port}")
+        print(f"\n\n\nServer listening on {host}:{port}")
 
         try:
             while True:
@@ -37,13 +37,13 @@ class Server:
                     print("User is sending their updated/new cards")
                     self.add_cards(conn)
                 case "1":
-                    print("\n\n\nSending the updated/new cards based on the user's timestamp")
+                    print("Sending the updated/new cards based on the user's timestamp")
                     timestamp_length = conn.recv(int(self.HEADER)).decode("utf-8")
                     timestamp = conn.recv(int(timestamp_length)).decode("utf-8")
                     cards = self.retrieve_cards_from_json(int(timestamp))
                     conn.send(json.dumps(cards).encode("utf-8"))
                 case "2":
-                    print("\n\n\nSending new deck to de user")
+                    print("Sending new deck to the user")
                     cards = self.retrieve_cards_from_json(0)
                     conn.send(json.dumps(cards).encode("utf-8"))
                 case _:
