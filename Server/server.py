@@ -15,12 +15,12 @@ class Server:
         self.sock.listen()
         self.json_file = ""
 
-        print(f"\n\n\nServer listening on {host}:{port}")
+        print(f"Server listening on {host}:{port}")
 
         try:
             while True:
                 conn, addr = self.sock.accept()
-                print(f"Connected to {addr}")
+                print(f"\n\n\nConnected to {addr}")
                 threading.Thread(target=self.handle_client, args=(conn,)).start()
         except KeyboardInterrupt:
             print("Closing server")
