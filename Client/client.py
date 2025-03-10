@@ -5,7 +5,7 @@ import time
 from DataManagement.cards_management import collect_cards
 from testAnkiConnected import (SYNC_FILE_PATH, DECKS_CODES_PATH, get_cards_from_deck, sync_card, update_json,
                                get_value_from_json, sync_anki, check_for_deck_existence,
-                               get_code_from_deck, create_deck)
+                               get_code_from_deck, create_deck, check_for_deck_in_json)
 
 
 class Client:
@@ -72,6 +72,9 @@ class Client:
 
 
     def receive_deck_from_code(self, deck_code):
+        if check_for_deck_in_json(deck_code):
+            print("The deck already exists.")
+            return
         try:
             self.connect_to_server()
             self.sock.sendall(str(2).encode("utf-8"))
@@ -164,8 +167,8 @@ def workflow_simulation(client, create, receive, deck_name, new):
 # --- main ---
 if __name__ == "__main__":
     client = Client()
-    deck_name = "TestDeck"
-    action = "new_deck"
+    deck_name = "TestKaishi"
+    action = "receive"
 
     match action:
         case "create":
@@ -176,7 +179,7 @@ if __name__ == "__main__":
             workflow_simulation(client, True, True, deck_name, False)
         case "new_deck":
             workflow_simulation(client, True, False,
-                                "expert+garden+seen+kweo+territory",True)
+                                "brave+initiated+messaging+edition+tune",True)
 
 
 

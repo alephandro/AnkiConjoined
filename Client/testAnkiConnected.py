@@ -127,6 +127,7 @@ def update_card(card_data, tags):
         }
     }
     update_response = requests.post(ANKI_CONNECT_URL, json=update_payload).json()
+    print(update_response)
     return update_response
 
 
@@ -160,6 +161,7 @@ def create_new_card(card_data, tags):
     }
 
     response = requests.post(ANKI_CONNECT_URL, json=payload).json()
+    print(response)
     return response
 
 
@@ -284,6 +286,16 @@ def get_code_from_deck(deck_name):
         deck_code = generate_random_deck_code()
         update_json(DECKS_CODES_PATH, deck_name, deck_code)
     return deck_code
+
+def check_for_deck_in_json(deck_code):
+    with open(DECKS_CODES_PATH, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+
+    for key, value in data.items():
+        if value == deck_code:
+            return True
+
+    return False
 
 
 if __name__ == "__main__":
