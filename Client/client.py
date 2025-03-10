@@ -5,7 +5,7 @@ import time
 from DataManagement.cards_management import collect_cards
 from testAnkiConnected import (SYNC_FILE_PATH, DECKS_CODES_PATH, get_cards_from_deck, sync_card, update_json,
                                get_value_from_json, sync_anki, check_for_deck_existence,
-                               get_code_from_deck, create_deck, check_for_deck_in_json)
+                               get_code_from_deck, create_deck, check_for_deck_in_json, delete_deck_information)
 
 
 class Client:
@@ -152,7 +152,7 @@ class Client:
         self.sock.sendall(info_encoded)
 
 
-def workflow_simulation(client, create, receive, deck_name, new):
+def workflow_simulation(client, create, receive, deck_name, new, delete):
     if new:
         client.receive_deck_from_code(deck_name)
         return
@@ -161,6 +161,8 @@ def workflow_simulation(client, create, receive, deck_name, new):
     if create:
         client.send_cards(deck_name)
     update_json(SYNC_FILE_PATH, deck_name, int(time.time()))
+    if delete:
+        delete_deck_information(deck_name)
     sync_anki()
 
 
@@ -168,18 +170,20 @@ def workflow_simulation(client, create, receive, deck_name, new):
 if __name__ == "__main__":
     client = Client()
     deck_name = "TestKaishi"
-    action = "receive"
+    action = "delete"
 
     match action:
         case "create":
-            workflow_simulation(client, True, False, deck_name, False)
+            workflow_simulation(client, True, False, deck_name, False, False)
         case "receive":
-            workflow_simulation(client, False, True, deck_name, False)
+            workflow_simulation(client, False, True, deck_name, False, False)
         case "update":
-            workflow_simulation(client, True, True, deck_name, False)
-        case "new_deck":
-            workflow_simulation(client, True, False,
-                                "brave+initiated+messaging+edition+tune",True)
+            workflow_simulation(client, True, True, deck_name, False, False)
+        case "new":
+            workflow_simulation(client, False, False,
+                                "brave+initiated+messaging+edition+tune",True, False)
+        case "delete":
+            workflow_simulation(client, False, False, deck_name, False, True)
 
 
 

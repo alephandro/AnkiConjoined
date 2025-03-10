@@ -221,6 +221,36 @@ def create_deck(deck_name):
     return response
 
 
+def delete_deck(deck_name):
+    payload = {
+        "action": "deleteDecks",
+        "version": 6,
+        "params": {
+            "decks": [deck_name],
+            "cardsToo": True
+        }
+    }
+
+    delete_response = requests.post(ANKI_CONNECT_URL, json=payload).json()
+    return delete_response
+
+
+def delete_key_from_json(key, path):
+    with open(path, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+
+    if key in data:
+        del data[key]
+        with open(path, 'w', encoding='utf-8') as file:
+            json.dump(data, file, indent=4)
+
+
+def delete_deck_information(deck_name):
+    delete_deck(deck_name)
+    delete_key_from_json(deck_name, SYNC_FILE_PATH)
+    delete_key_from_json(deck_name, DECKS_CODES_PATH)
+
+
 def generate_random_card(deck_name):
     """Generates a random test card matching the stored JSON format."""
     timestamp = int(time.time())
