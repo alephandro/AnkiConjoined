@@ -9,4 +9,5 @@
 .idea/
 /Client/pathToDatabase
 *.json
+error_log.txt
 
