@@ -10,4 +10,5 @@
 /Client/pathToDatabase
 *.json
 error_log.txt
+*.sqlite3
 
