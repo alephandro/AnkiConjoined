@@ -3,12 +3,10 @@ import json
 import time
 import os
 
-# Get the addon directory for absolute file paths
 ADDON_DIR = os.path.dirname(__file__)
 SYNC_FILE_PATH = os.path.join(ADDON_DIR, "sync_log.json")
 DECKS_CODES_PATH = os.path.join(ADDON_DIR, "decks_codes.json")
 
-# Import the async versions of functions
 from .testAnkiConnected import (
     get_cards_from_deck, sync_card, update_json,
     get_value_from_json, sync_anki, check_for_deck_existence,
@@ -16,32 +14,7 @@ from .testAnkiConnected import (
     delete_deck_information, log_error
 )
 
-# Import card collection function from DataManagement
-try:
-    from .DataManagement.cards_management import collect_cards
-except ImportError:
-    # Fallback definition if import fails
-    def collect_cards(soc):
-        """Fallback function to collect cards from socket"""
-        try:
-            data_chunks = []
-            while True:
-                chunk = soc.recv(4096)
-                if not chunk:
-                    break
-                data_chunks.append(chunk)
-
-            if not data_chunks:
-                log_error("No data received from socket")
-                return None
-
-            decoded_data = b''.join(data_chunks).decode("utf-8")
-            cards = json.loads(decoded_data)
-            return cards
-
-        except Exception as e:
-            log_error(f"Error collecting cards: {str(e)}")
-            return None
+from .DataManagement.cards_management import collect_cards
 
 
 class Client:
