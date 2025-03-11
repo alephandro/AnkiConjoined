@@ -41,7 +41,7 @@ def login(request, name):
     if name == "foo":
         return redirect('login_failed')
     else:
-        return redirect(f'welcome/{name}')
+        return redirect(f'/welcome/{name}')
 
 def welcome(request, name):
     return HttpResponse(layout + f"""
