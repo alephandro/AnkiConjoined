@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>
+        {% block title %}
+        {% endblock %}
+        | WebServer
+    </title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+
+    <header>
+        <div id="logotype">
+            <img src="{% static 'images/logo.png' %}"/>
+            <h1>Anki Conjoined</h1>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li>
+                <a href="/">Main Page</a>
+            </li>
+            <li>
+                <a href="/login">Login</a>
+            </li>
+            <li>
+                <a href="/admin">Admin</a>
+            </li>
+            <li>
+                <a href="/welcome/">Welcome Page</a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="taskbar">
+        <span class="left-corner"></span>
+        <span class="taskbar-filler"></span>
+        <span class="right-corner"></span>
+    </div>
+
+    <div id = "content">
+
+        <div class = "box">
+            {% block content %}
+                <strong>Keoland_original!!</strong>
+            {% endblock %}
+        </div>
+
+    </div>
+
+    <footer>
+        WebServer Test | AnkiConjoined&copy;
+    </footer>
+</body>
+</html>

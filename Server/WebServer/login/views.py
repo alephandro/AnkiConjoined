@@ -3,26 +3,6 @@ from django.shortcuts import render, redirect
 
 # Create your views here.
 
-layout = """
-<h1> Browser </h1>
-<hr/>
-<ul>
-    <li>
-        <a href="/">Main Page</a>
-    </li>
-    <li>
-        <a href="/login">Login</a>
-    </li>
-    <li>
-        <a href="/admin">Admin</a>
-    </li>
-    <li>
-        <a href="/welcome/">Welcome Page</a>
-    </li>
-</ul>
-<hr/>
-"""
-
 def index(request):
 
     html = """
@@ -35,7 +15,7 @@ def index(request):
         html += f"<li>{str(year)}</li>"
 
     html += "</ul>"
-    return HttpResponse(layout + html)
+    return render(request, 'index.html')
 
 def login(request, name):
     if name == "foo":
@@ -44,7 +24,7 @@ def login(request, name):
         return redirect(f'/welcome/{name}')
 
 def welcome(request, name):
-    return HttpResponse(layout + f"""
+    return HttpResponse(f"""
     <h2>Welcome {name}!!</h2>
     """)
 

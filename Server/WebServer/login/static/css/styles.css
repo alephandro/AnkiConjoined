@@ -1,0 +1,138 @@
+/*Generic styles*/
+
+*{
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    text-decoration: none;
+}
+
+body{
+    background-color: #f2f2f2;
+}
+
+header{
+    width: 1212px;
+    height: 140px;
+    background: #23282B;
+    margin: 0 auto;
+}
+
+#logotype{
+    width: 35%;
+    height: 140px;
+    margin: 0 auto;
+}
+
+#logotype img{
+    display: block;
+    float: left;
+    width: 100px;
+    margin-top: 20px;
+}
+
+#logotype h1{
+    display: block;
+    float: left;
+    letter-spacing: 2px;
+    margin-top: 47px;
+    margin-left: 20px;
+    font-weight: lighter;
+    color: #57B9FF;
+}
+
+nav{
+    width: 1250px;
+    height: 40px;
+    margin: 0 auto;
+    background-color: #1B1E1F;
+    border: 1px solid #333333;
+    box-shadow: 0 22px 22px gray;
+    font-size: 15px;
+}
+
+nav ul{
+    list-style: none;
+    text-decoration: none;
+}
+
+nav ul li{
+    line-height: 40px;
+    float: left;
+}
+
+nav ul li a{
+    display: block;
+    padding-left: 15px;
+    padding-right: 15px;
+    color: #D1D4D6;
+}
+
+nav ul li a:hover{
+    color: black;
+    background: #57B9FF;
+    box-shadow: 0 22px 22px gray;
+    transition: all 0.2s;
+}
+
+.taskbar{
+    width: 1250px;
+    margin: 0 auto;
+}
+
+.left-corner{
+    display: block;
+    border-left: 20px solid transparent;
+    border-top: 10px solid #2B2F30;
+    float:left;
+}
+
+.right-corner{
+    display: block;
+    border-right: 20px solid transparent;
+    border-top: 10px solid #2B2F30;
+    float:right;
+}
+
+.taskbar-filler{
+    display: block;
+    width: 1210px;
+    height: 10px;
+    background: #2B2F30;
+    float: left;
+}
+
+#content{
+    width: 1212px;
+    min-height: 930px;
+    margin: 40px auto 30px;
+}
+
+.box{
+    margin: 0 auto;
+    background: white;
+    width: 95%;
+    min-height: 930px;
+    padding: 20px;
+    border: 1px solid #DDD;
+}
+
+.title{
+    color: #444;
+    letter-spacing: 1px;
+    font-size: 40px;
+    margin-bottom: 10px;
+    margin-top: 5px;
+}
+
+footer{
+    width: 1250px;
+    background: #1B1E1F;
+    border: 1px solid #333;
+    color: #D1D4D6;
+    text-align: center;
+    margin: 0 auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    box-shadow: 0 0 0 gray;
+}
