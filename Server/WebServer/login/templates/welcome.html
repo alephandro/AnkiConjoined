@@ -1,0 +1,11 @@
+{% extends 'layout.html' %}
+
+{% block title %}Welcome Page{% endblock %}
+
+{% block content %}
+    <h1 class="title">Welcome {{name}}!!!</h1>
+    {{ block.super }}
+
+  <p><strong>{{name}}'s</strong> deck list:</p>
+
+{% endblock %}

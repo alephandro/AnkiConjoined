@@ -22,16 +22,16 @@
     <nav>
         <ul>
             <li>
-                <a href="/">Main Page</a>
+                <a href="{% url 'index' %}">Main Page</a>
             </li>
             <li>
-                <a href="/login">Login</a>
+                <a href="{% url 'login' 'keo' %}">Login</a>
             </li>
             <li>
                 <a href="/admin">Admin</a>
             </li>
             <li>
-                <a href="/welcome/">Welcome Page</a>
+                <a href="{% url 'welcome' 'keo' %}">Welcome Page</a>
             </li>
         </ul>
     </nav>

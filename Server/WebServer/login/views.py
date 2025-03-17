@@ -25,9 +25,10 @@ def login(request, name):
         return redirect(f'/welcome/{name}')
 
 def welcome(request, name):
-    return HttpResponse(f"""
-    <h2>Welcome {name}!!</h2>
-    """)
+    return render(request, 'welcome.html',
+                  {
+                      'name': name
+                  })
 
 def login_failed(request):
     return HttpResponse("""

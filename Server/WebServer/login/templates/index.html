@@ -6,7 +6,7 @@
     <h1 class="title">Main Page</h1>
     {{ block.super }}
 
-<p>Listado de mazos del usuario: <strong>{{user}}</strong></p>
+    <p>Listado de mazos del usuario: <strong>{{user}}</strong></p>
     <ul>
         {% for deck in data %}
             <li>{{deck}}</li>
@@ -16,7 +16,7 @@
     <p>Even years till 2050 (from {{firstYear}})</p>
     <ul>
         {% for year in years %}
-            {% if year|divisibleby:2 != 0 %}
+            {% if year|divisibleby:2 == True %}
                 <li>{{year}}</li>
             {% endif %}
         {% endfor %}
