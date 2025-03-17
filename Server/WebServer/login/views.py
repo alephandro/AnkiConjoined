@@ -4,8 +4,7 @@ from hashlib import sha256
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from login.models import *
-
-from Server.WebServer.login.models import User
+from django.db.models import Q
 
 
 # Create your views here.
