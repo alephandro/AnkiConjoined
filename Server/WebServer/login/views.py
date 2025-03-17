@@ -5,6 +5,9 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from login.models import *
 
+from Server.WebServer.login.models import User
+
+
 # Create your views here.
 
 def index(request):
@@ -77,3 +80,7 @@ def change_password(request, username, old, new):
     user.password = sha256(new.encode('utf-8')).hexdigest()
     user.save()
     return HttpResponse(f"Password changed: {user.username}")
+
+def drop_user(username):
+    user = User.objects.get(username=username)
+    user.delete()
