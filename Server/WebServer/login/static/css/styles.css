@@ -7,6 +7,12 @@
     text-decoration: none;
 }
 
+.box ul, .box ol {
+    margin-top: 5px;
+    margin-left: 30px;
+    margin-bottom: 15px;
+}
+
 body{
     background-color: #f2f2f2;
 }

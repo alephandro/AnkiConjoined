@@ -5,5 +5,20 @@
 {% block content %}
     <h1 class="title">Main Page</h1>
     {{ block.super }}
-    <p>Years till 2050</p>
+
+<p>Listado de mazos del usuario: <strong>{{user}}</strong></p>
+    <ul>
+        {% for deck in data %}
+            <li>{{deck}}</li>
+        {% endfor %}
+    </ul>
+
+    <p>Even years till 2050 (from {{firstYear}})</p>
+    <ul>
+        {% for year in years %}
+            {% if year|divisibleby:2 != 0 %}
+                <li>{{year}}</li>
+            {% endif %}
+        {% endfor %}
+    </ul>
 {% endblock %}

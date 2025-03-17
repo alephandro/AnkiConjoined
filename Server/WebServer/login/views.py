@@ -1,21 +1,22 @@
+import json
+
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 
 # Create your views here.
 
 def index(request):
-
-    html = """
-        <h1>Main Page</h1>
-        <p>Years till 2050</p>
-        <ul>
-    """
-
-    for year in range(2025, 2051):
-        html += f"<li>{str(year)}</li>"
-
-    html += "</ul>"
-    return render(request, 'index.html')
+    year = 2025
+    user = "keo"
+    data = retreive_decks(user)
+    return render(request, 'index.html',
+                  {
+                      'var1': 'content of var1',
+                      'data': data,
+                      'user': user,
+                      'years': range(year, 2051),
+                      'firstYear': year
+                  })
 
 def login(request, name):
     if name == "foo":
@@ -35,3 +36,12 @@ def login_failed(request):
             <a href="/">Back to the Main Page?</a>
         <hr/>
         """)
+
+def retreive_decks(user):
+    try:
+        with open("/Users/alephandro/git/AnkiConjoined/Server/WebServer/decks.json", "r") as file:
+            data = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        data = {}
+
+    return data.get(user, 0)
