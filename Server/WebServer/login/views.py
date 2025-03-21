@@ -4,7 +4,7 @@ import sys, os
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
 sys.path.append(project_root)
 
-from DataManagement.cards_management import generate_random_deck_code
+from card_sync_server.DataManagement.cards_management import generate_random_deck_code
 from hashlib import sha256
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -84,6 +84,15 @@ def save_deck(request):
     else:
         return HttpResponse(f"Invalid method: {request.method}")
 
+
+def save_deck_user_privilege(user, deck, privilege):
+    userDeck = UserDeck(
+        user=user,
+        deck=deck,
+        privilege=privilege
+    )
+
+    userDeck.save()
 
 
 def deck_creation_view(request):
