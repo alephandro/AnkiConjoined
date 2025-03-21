@@ -5,7 +5,9 @@
 {% block content %}
 <h1 class="title">Deck Creation</h1>
 
-<form action="{% url 'save_deck' %}" method="GET">
+<form action="{% url 'save_deck' %}" method="POST">
+
+    {% csrf_token %}
 
     <label for="deck_name">Name of the deck</label>
     <input type="text" name="deck_name" placeholder="Insert the name of the deck"/>

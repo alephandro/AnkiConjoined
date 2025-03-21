@@ -4,7 +4,7 @@ import sys, os
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
 sys.path.append(project_root)
 
-from card_sync_server.DataManagement.cards_management import generate_random_deck_code
+from DataManagement.cards_management import generate_random_deck_code
 from hashlib import sha256
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -68,10 +68,10 @@ def register(request, username, password):
 
 def save_deck(request):
 
-    if request.method == "GET":
+    if request.method == "POST":
 
-        deck_name = request.GET.get("deck_name")
-        deck_desc = request.GET.get("deck_desc")
+        deck_name = request.POST.get("deck_name")
+        deck_desc = request.POST.get("deck_desc")
 
         deck = Deck(
             deck_name = deck_name,
