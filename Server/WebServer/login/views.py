@@ -1,5 +1,10 @@
 import json
+import sys, os
 
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+sys.path.append(project_root)
+
+from DataManagement.cards_management import generate_random_deck_code
 from hashlib import sha256
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -52,14 +57,37 @@ def retrieve_decks(user):
     return data.get(user, 0)
 
 
-def register(request):
+def register(request, username, password):
     user = User(
-        username="pepe",
-        password=sha256("keo".encode('utf-8')).hexdigest()
+        username=username,
+        password=sha256(password.encode('utf-8')).hexdigest()
     )
 
     user.save()
     return HttpResponse(f"User created: {user.username}")
+
+def save_deck(request):
+
+    if request.method == "GET":
+
+        deck_name = request.GET.get("deck_name")
+        deck_desc = request.GET.get("deck_desc")
+
+        deck = Deck(
+            deck_name = deck_name,
+            deck_code = generate_random_deck_code(),
+            deck_desc = deck_desc
+        )
+
+        deck.save()
+        return HttpResponse(f"Deck created: {deck.deck_name}\n Your deck code is: '{deck.deck_code}'")
+    else:
+        return HttpResponse(f"Invalid method: {request.method}")
+
+
+
+def deck_creation_view(request):
+    return render(request, "deck_creation.html")
 
 def get_user(request):
     user = User.objects

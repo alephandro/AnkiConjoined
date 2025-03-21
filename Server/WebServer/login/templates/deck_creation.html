@@ -1,0 +1,18 @@
+{% extends 'layout.html' %}
+
+{% block title %}Deck Creation Page{% endblock %}
+
+{% block content %}
+<h1 class="title">Deck Creation</h1>
+
+<form action="{% url 'save_deck' %}" method="GET">
+
+    <label for="deck_name">Name of the deck</label>
+    <input type="text" name="deck_name" placeholder="Insert the name of the deck"/>
+
+    <label for="deck_desc">Description of the Deck</label>
+    <textarea type="text" name="deck_desc" placeholder="Insert a brief description of your deck"></textarea>
+
+    <input type="submit" value="Create" />
+</form>
+{% endblock %}

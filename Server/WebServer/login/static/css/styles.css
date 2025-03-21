@@ -123,6 +123,40 @@ nav ul li a:hover{
     border: 1px solid #DDD;
 }
 
+.box form{
+    width: 60%;
+}
+
+.box form input,
+.box form label{
+    display: block;
+    padding: 5px 5px 5px 0;
+}
+
+.box form input[type="text"],
+.box form textarea{
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.box form input[type="submit"],
+.box form input[type="button"],
+.box form button{
+    padding: 10px;
+    margin-top: 10px;
+    background: #2B2F30;
+    color: white;
+}
+
+.box form input[type="submit"]:hover,
+.box form input[type="button"]:hover,
+.box form button:hover{
+    cursor: pointer;
+    color: black;
+    background: #57B9FF;
+    transition: all 0.2s;
+}
+
 .title{
     color: #444;
     letter-spacing: 1px;
