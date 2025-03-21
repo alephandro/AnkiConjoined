@@ -56,7 +56,6 @@ class Client:
             deck_code = get_code_from_deck(deck_name)
             self.send_size_and_package(deck_code)
             self.send_size_and_package(timestamp)
-            self.sock.shutdown(socket.SHUT_WR)
 
             cards = collect_cards(self.sock)
             check_for_deck_existence(deck_name)
@@ -79,7 +78,6 @@ class Client:
             self.connect_to_server()
             self.sock.sendall(str(2).encode("utf-8"))
             self.send_size_and_package(deck_code)
-            self.sock.shutdown(socket.SHUT_WR)
 
             cards = collect_cards(self.sock)
             if cards is None:
@@ -170,7 +168,7 @@ def workflow_simulation(client, create, receive, deck_name, new, delete):
 if __name__ == "__main__":
     client = Client()
     deck_name = "TestKaishi"
-    action = "delete"
+    action = "receive"
 
     match action:
         case "create":
@@ -181,7 +179,7 @@ if __name__ == "__main__":
             workflow_simulation(client, True, True, deck_name, False, False)
         case "new":
             workflow_simulation(client, False, False,
-                                "brave+initiated+messaging+edition+tune",True, False)
+                                "plastic+recently+arrive+band+downloads",True, False)
         case "delete":
             workflow_simulation(client, False, False, deck_name, False, True)
 
