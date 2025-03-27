@@ -70,49 +70,75 @@ def register(request, username, password):
 def save_deck(request):
 
     if request.method == "POST":
-
         deck_name = request.POST.get("deck_name")
         deck_desc = request.POST.get("deck_desc")
-
-        deck = Deck(
-            deck_name = deck_name,
-            deck_code = generate_random_deck_code(),
-            deck_desc = deck_desc
-        )
-
-        deck.save()
+        save_deck_local(deck_name, deck_desc)
         return HttpResponse(f"Deck created: {deck.deck_name}\n Your deck code is: '{deck.deck_code}'")
+
     else:
         return HttpResponse(f"Invalid method: {request.method}")
 
+def save_deck_local(deck_name, deck_desc):
+    deck = Deck(
+        deck_name=deck_name,
+        deck_code=generate_random_deck_code(),
+        deck_desc=deck_desc
+    )
+    deck.save()
+
+    empty = {}
+    path = f"{project_root}/Server/{deck.deck_code}.json"
+    with open(path, "w") as file:
+        json.dump(empty, file)
+
+    return deck
 
 def save_deck_user_privilege(user, deck, privilege):
-    userDeck = UserDeck(
-        user=user,
-        deck=deck,
-        privilege=privilege
-    )
+    if check_user(user):
+        user = User.objects.get(username=user)
+        deck = Deck.objects.get(deck_name=deck)
 
-    userDeck.save()
+        userDeck = UserDeck(
+            user=user,
+            deck=deck,
+            privilege=privilege
+        )
+
+        userDeck.save()
+
+        return True
+
+    else:
+        return False
 
 
 def deck_creation_view(request):
     return render(request, "deck_creation.html")
 
 def deck_creation_form(request):
-    form = NewDeckForm()
+    if request.method == "POST":
 
-    return render(request, "deck_creation_form.html", {
-        'form': form
-    })
+        form = NewDeckForm(request.POST)
+        if form.is_valid():
+            name = form.cleaned_data["name"]
+            desc = form.cleaned_data["desc"]
+            deck = save_deck_local(name, desc)
+            if save_deck_user_privilege("pedro", deck.deck_name, "c"):
+                return HttpResponse(f"Deck created: {deck.deck_name}, and your deck code is: '{deck.deck_code}'")
+            else:
+                return HttpResponse(f"Invalid form: {form.errors}")
+        else:
+            return HttpResponse(f"Invalid form: {form.is_valid()}")
+    else:
+        form = NewDeckForm()
+        return render(request, "deck_creation_form.html", {
+            'form': form
+        })
 
-def get_user(request):
+def check_user(username):
     user = User.objects
-
-    password = user.get(username="pepe").password
-
-    html = f"<h1>Password of pepe: {password}</h1>"
-    return HttpResponse(html)
+    user = user.get(username=username)
+    return user is not None
 
 def change_password(request, username, old, new):
     user = User.objects.get(username=username)
@@ -128,3 +154,23 @@ def change_password(request, username, old, new):
 def drop_user(username):
     user = User.objects.get(username=username)
     user.delete()
+
+def drop_deck(deck_name):
+    deck = Deck.objects.get(deck_name=deck_name)
+    deck_code = deck.deck_code
+    deck.delete()
+
+    deck_relations = UserDeck.objects.filter(deck_name=deck_name)
+    for deck_relation in deck_relations:
+        deck_relation.delete()
+
+    path = f"{project_root}/Server/{deck_code}.json"
+    if os.path.exists(path):
+        os.remove(path)
+
+def user_decks(request):
+    decks = Deck.objects.all()
+
+    return render(request, "user_decks.html", {
+        'decks': decks
+    })

@@ -26,7 +26,6 @@ urlpatterns = [
     path('welcome/<str:name>', views.welcome, name='welcome'),
     path('login_failed/', views.login_failed, name='login_failed'),
     path('register/<str:username>/<str:passwd>', views.register, name='register'),
-    path('get/', views.get_user, name='get'),
     path('change/<str:username>/<str:old>/<str:new>', views.change_password, name='change_password'),
     path('deck_save_view/', views.save_deck, name='save_deck'),
     path('deck_creation_view/', views.deck_creation_view, name='deck_creation'),
