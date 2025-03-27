@@ -28,6 +28,8 @@ urlpatterns = [
     path('register/<str:username>/<str:passwd>', views.register, name='register'),
     path('change/<str:username>/<str:old>/<str:new>', views.change_password, name='change_password'),
     path('deck_save_view/', views.save_deck, name='save_deck'),
+    path('my_decks/', views.user_decks, name='my_decks'),
+    path('delete_deck/<str:deck_code>', views.delete_deck, name='delete_deck'),
     path('deck_creation_view/', views.deck_creation_view, name='deck_creation'),
     path('deck_creation_form/', views.deck_creation_form, name='deck_creation_form'),
 ]
