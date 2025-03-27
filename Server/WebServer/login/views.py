@@ -10,6 +10,7 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from login.models import *
 from django.db.models import Q
+from login.forms import NewDeckForm
 
 
 # Create your views here.
@@ -97,6 +98,13 @@ def save_deck_user_privilege(user, deck, privilege):
 
 def deck_creation_view(request):
     return render(request, "deck_creation.html")
+
+def deck_creation_form(request):
+    form = NewDeckForm()
+
+    return render(request, "deck_creation_form.html", {
+        'form': form
+    })
 
 def get_user(request):
     user = User.objects

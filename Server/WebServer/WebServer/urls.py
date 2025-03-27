@@ -30,4 +30,5 @@ urlpatterns = [
     path('change/<str:username>/<str:old>/<str:new>', views.change_password, name='change_password'),
     path('deck_save_view/', views.save_deck, name='save_deck'),
     path('deck_creation_view/', views.deck_creation_view, name='deck_creation'),
+    path('deck_creation_form/', views.deck_creation_form, name='deck_creation_form'),
 ]
