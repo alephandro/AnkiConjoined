@@ -168,6 +168,18 @@ def drop_deck(deck_name):
     if os.path.exists(path):
         os.remove(path)
 
+def delete_deck(request, deck_code):
+    # check the privileges
+    # username = request.POST.get("username")
+    username = "pedro"
+    privilege = UserDeck.objects.get(user=username, deck=deck_code).privilege
+    if privilege == "c":
+        deck_name = Deck.objects.get(deck_code=deck_code).deck_name
+        drop_deck(deck_name)
+        return redirect("my_decks")
+    else:
+        return HttpResponse(f"Invalid privilege: {privilege}")
+
 def user_decks(request):
     # username = request.POST.get("username")
     username = "pedro"
