@@ -169,7 +169,10 @@ def drop_deck(deck_name):
         os.remove(path)
 
 def user_decks(request):
-    decks = Deck.objects.all()
+    # username = request.POST.get("username")
+    username = "pedro"
+    deck_codes = UserDeck.objects.filter(user=username).values_list('deck_id', flat=True)
+    decks = Deck.objects.filter(deck_code__in=deck_codes)
 
     return render(request, "user_decks.html", {
         'decks': decks
