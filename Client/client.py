@@ -56,7 +56,6 @@ class Client:
             deck_code = get_code_from_deck(deck_name)
             self.send_size_and_package(deck_code)
             self.send_size_and_package(timestamp)
-            self.sock.shutdown(socket.SHUT_WR)
 
             cards = collect_cards(self.sock)
             check_for_deck_existence(deck_name)
@@ -79,7 +78,6 @@ class Client:
             self.connect_to_server()
             self.sock.sendall(str(2).encode("utf-8"))
             self.send_size_and_package(deck_code)
-            self.sock.shutdown(socket.SHUT_WR)
 
             cards = collect_cards(self.sock)
             if cards is None:
