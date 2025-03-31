@@ -124,8 +124,6 @@ def deck_creation_form(request):
             desc = form.cleaned_data["desc"]
             deck = save_deck_local(name, desc)
             if save_deck_user_privilege("pedro", deck.deck_name, "c"):
-                save_deck_user_privilege("keo", deck.deck_name, "r")
-                save_deck_user_privilege("juan", deck.deck_name, "w")
                 return HttpResponse(f"Deck created: {deck.deck_name}, and your deck code is: '{deck.deck_code}'")
             else:
                 return HttpResponse(f"Invalid form: {form.errors}")
