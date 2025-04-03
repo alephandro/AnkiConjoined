@@ -101,23 +101,18 @@ def deck_creation_form(request):
                     deck_desc=desc
                 )
                 deck.save()
-                print(f"Deck created: {deck.deck_name} with code {deck.deck_code}")
 
                 empty = {}
                 path = f"{project_root}/Server/{deck.deck_code}.json"
                 with open(path, "w") as file:
                     json.dump(empty, file)
 
-                from django.contrib.auth.models import User
-                user = request.user
-
                 user_deck = UserDeck(
-                    user=user,
+                    user=request.user,
                     deck=deck,
                     privilege="c"
                 )
                 user_deck.save()
-                print(f"Created relationship for user {user.username} and deck {deck.deck_code}")
 
                 messages.success(request,
                                  f"Deck '{deck.deck_name}' created successfully! Your deck code is: {deck.deck_code}")
@@ -125,6 +120,15 @@ def deck_creation_form(request):
 
             except Exception as e:
                 print(f"Error in deck creation process: {str(e)}")
+                try:
+                    if 'deck' in locals():
+                        path = f"{project_root}/Server/{deck.deck_code}.json"
+                        if os.path.exists(path):
+                            os.remove(path)
+                        deck.delete()
+                except Exception as cleanup_error:
+                    print(f"Error during cleanup: {str(cleanup_error)}")
+
                 messages.error(request, f"Error creating deck: {str(e)}")
     else:
         form = NewDeckForm()
@@ -167,17 +171,6 @@ def save_deck_local(deck_name, deck_desc):
 
 
 def save_deck_user_privilege(username, deck_code, privilege):
-    """
-    Creates a relationship between a user and a deck with the specified privilege.
-
-    Args:
-        username: The username of the user
-        deck_code: The deck code to link
-        privilege: The privilege level (e.g., 'c' for creator)
-
-    Returns:
-        Boolean indicating success or failure
-    """
     from django.contrib.auth.models import User
 
     try:
@@ -224,6 +217,8 @@ def delete_deck(request, deck_code):
 
                 UserDeck.objects.filter(deck=deck).delete()
                 deck.delete()
+
+                Deck.objects.filter(deck_code=deck_code).delete()
 
                 path = f"{project_root}/Server/{deck_code}.json"
                 if os.path.exists(path):
