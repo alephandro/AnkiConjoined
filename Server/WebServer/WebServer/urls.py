@@ -21,15 +21,18 @@ from login import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
-    path('login/<str:name>', views.login, name='login'),
-    # For parameters use /<type:name_of_parameter> and go to the function to update the parameters received.
+
+    # Authentication URLs
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    path('register/', views.register_view, name='register'),
+
     path('welcome/<str:name>', views.welcome, name='welcome'),
-    path('login_failed/', views.login_failed, name='login_failed'),
-    path('register/<str:username>/<str:passwd>', views.register, name='register'),
-    path('change/<str:username>/<str:old>/<str:new>', views.change_password, name='change_password'),
-    path('deck_save_view/', views.save_deck, name='save_deck'),
-    path('my_decks/', views.user_decks, name='my_decks'),
-    path('delete_deck/<str:deck_code>', views.delete_deck, name='delete_deck'),
-    path('deck_creation_view/', views.deck_creation_view, name='deck_creation'),
-    path('deck_creation_form/', views.deck_creation_form, name='deck_creation_form'),
+
+    # Deck management
+    path('decks/', views.user_decks, name='my_decks'),
+    path('decks/create/', views.deck_creation_view, name='deck_creation'),
+    path('decks/create/form/', views.deck_creation_form, name='deck_creation_form'),
+    path('decks/save/', views.save_deck_local, name='save_deck'),
+    path('decks/delete/<str:deck_code>/', views.delete_deck, name='delete_deck'),
 ]

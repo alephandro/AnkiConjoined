@@ -1,0 +1,38 @@
+{% extends 'layout.html' %}
+
+{% block title %}Confirm Action{% endblock %}
+
+{% block content %}
+<div class="confirm-container">
+    <h1 class="title">Confirm Action</h1>
+
+    {% if is_creator %}
+        <div class="warning-box">
+            <h2>Delete Deck</h2>
+            <p>You are about to delete the deck <strong>{{ deck.deck_name }}</strong>.</p>
+            <p>This will permanently delete the deck and remove access for all users. This action cannot be undone.</p>
+        </div>
+    {% else %}
+        <div class="warning-box">
+            <h2>Leave Deck</h2>
+            <p>You are about to leave the deck <strong>{{ deck.deck_name }}</strong>.</p>
+            <p>You will lose access to this deck but it will remain available to other users.</p>
+        </div>
+    {% endif %}
+
+    <div class="action-buttons">
+        <form method="POST" action="{% url 'delete_deck' deck.deck_code %}">
+            {% csrf_token %}
+            <input type="hidden" name="confirmed" value="true">
+
+            {% if is_creator %}
+                <button type="submit" class="btn-danger">Delete Deck</button>
+            {% else %}
+                <button type="submit" class="btn-warning">Leave Deck</button>
+            {% endif %}
+
+            <a href="{% url 'my_decks' %}" class="btn-cancel">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

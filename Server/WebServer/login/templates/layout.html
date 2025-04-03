@@ -24,24 +24,29 @@
             <li>
                 <a href="{% url 'index' %}">Main Page</a>
             </li>
-            <li>
-                <a href="{% url 'my_decks' %}">My Decks</a>
-            </li>
-            <li>
-                <a href="{% url 'login' 'keo' %}">Login</a>
-            </li>
-            <li>
-                <a href="/admin">Admin</a>
-            </li>
-            <li>
-                <a href="{% url 'welcome' 'keo' %}">Welcome Page</a>
-            </li>
-            <li>
-                <a href="{% url 'deck_creation' %}">DeckCreation</a>
-            </li>
-            <li>
-                <a href="{% url 'deck_creation_form' %}">DeckCreationForm</a>
-            </li>
+                {% if request.user.is_authenticated %}
+                    <li>
+                        <a href="{% url 'my_decks' %}">My Decks</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'deck_creation_form' %}">Create Deck</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'logout' %}">Logout ({{ request.user.username }})</a>
+                    </li>
+                {% else %}
+                    <li>
+                        <a href="{% url 'login' %}">Login</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'register' %}">Register</a>
+                    </li>
+                {% endif %}
+            {% if user.is_staff %}
+                <li>
+                    <a href="/admin">Admin</a>
+                </li>
+            {% endif %}
         </ul>
     </nav>
 

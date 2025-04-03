@@ -1,5 +1,6 @@
 import json
 import uuid
+import os
 
 ADDON_DIR = os.path.dirname(__file__)
 RANDOM_WORDS_FILE_PATH = os.path.join(ADDON_DIR, "random_words")

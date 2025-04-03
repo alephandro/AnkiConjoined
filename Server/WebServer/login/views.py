@@ -1,82 +1,154 @@
 import json
 import sys, os
+from django.contrib.auth import authenticate, login as auth_login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.http import HttpResponse
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
 sys.path.append(project_root)
 
 from DataManagement.cards_management import generate_random_deck_code
-from hashlib import sha256
-from django.http import HttpResponse
-from django.shortcuts import render, redirect
-from login.models import *
-from django.db.models import Q
-from login.forms import NewDeckForm
+from login.forms import SignUpForm, LoginForm, NewDeckForm
+from login.models import Deck, UserDeck
 
 
-# Create your views here.
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('index')
 
+    if request.method == 'POST':
+        form = LoginForm(request=request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                auth_login(request, user)
+                messages.success(request, f"Welcome back, {username}!")
+                return redirect('index')
+        else:
+            messages.error(request, "Invalid username or password.")
+    else:
+        form = LoginForm()
+    return render(request, 'login/login.html', {'form': form})
+
+
+def register_view(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            username = form.cleaned_data.get('username')
+            messages.success(request, f"Account created for {username}!")
+            auth_login(request, user)
+            return redirect('index')
+    else:
+        form = SignUpForm()
+    return render(request, 'login/register.html', {'form': form})
+
+
+def logout_view(request):
+    logout(request)
+    messages.info(request, "You have been logged out.")
+    return redirect('login')
+
+
+@login_required
 def index(request):
+    decks = retrieve_decks(request.user.username)
     year = 2025
-    user = "keo"
-    data = retrieve_decks(user)
     return render(request, 'index.html',
                   {
-                      'var1': 'content of var1',
-                      'data': data,
-                      'user': user,
+                      'data': decks,
+                      'user': request.user.username,
                       'years': range(year, 2051),
                       'firstYear': year
                   })
 
-def login(request, name):
-    if name == "foo":
-        return redirect('login_failed')
-    else:
-        return redirect(f'/welcome/{name}')
-
-def welcome(request, name):
-    return render(request, 'welcome.html',
-                  {
-                      'name': name
-                  })
-
-def login_failed(request):
-    return HttpResponse("""
-        <h2>Login has failed</h2>
-        <hr/>
-            <a href="/">Back to the Main Page?</a>
-        <hr/>
-        """)
 
 def retrieve_decks(user):
-    try:
-        with open("/Users/alephandro/git/AnkiConjoined/Server/WebServer/decks.json", "r") as file:
-            data = json.load(file)
-    except (FileNotFoundError, json.JSONDecodeError):
-        data = {}
-
-    return data.get(user, 0)
+    user_decks = UserDeck.objects.filter(user__username=user)
+    return [deck.deck for deck in user_decks]
 
 
-def register(request, username, password):
-    user = User(
-        username=username,
-        password=sha256(password.encode('utf-8')).hexdigest()
-    )
+@login_required
+def welcome(request, name):
+    return render(request, 'welcome.html', {'name': name})
 
-    user.save()
-    return HttpResponse(f"User created: {user.username}")
 
-def save_deck(request):
+@login_required
+def deck_creation_view(request):
+    return render(request, "deck_creation.html")
 
+
+@login_required
+def deck_creation_form(request):
     if request.method == "POST":
-        deck_name = request.POST.get("deck_name")
-        deck_desc = request.POST.get("deck_desc")
-        save_deck_local(deck_name, deck_desc)
-        return HttpResponse(f"Deck created: {deck.deck_name}\n Your deck code is: '{deck.deck_code}'")
+        form = NewDeckForm(request.POST)
+        if form.is_valid():
+            name = form.cleaned_data["name"]
+            desc = form.cleaned_data["desc"]
 
+            try:
+                deck = Deck(
+                    deck_name=name,
+                    deck_code=generate_random_deck_code(),
+                    deck_desc=desc
+                )
+                deck.save()
+                print(f"Deck created: {deck.deck_name} with code {deck.deck_code}")
+
+                empty = {}
+                path = f"{project_root}/Server/{deck.deck_code}.json"
+                with open(path, "w") as file:
+                    json.dump(empty, file)
+
+                from django.contrib.auth.models import User
+                user = request.user
+
+                user_deck = UserDeck(
+                    user=user,
+                    deck=deck,
+                    privilege="c"
+                )
+                user_deck.save()
+                print(f"Created relationship for user {user.username} and deck {deck.deck_code}")
+
+                messages.success(request,
+                                 f"Deck '{deck.deck_name}' created successfully! Your deck code is: {deck.deck_code}")
+                return redirect('my_decks')
+
+            except Exception as e:
+                print(f"Error in deck creation process: {str(e)}")
+                messages.error(request, f"Error creating deck: {str(e)}")
     else:
-        return HttpResponse(f"Invalid method: {request.method}")
+        form = NewDeckForm()
+
+    return render(request, "deck_creation_form.html", {'form': form})
+
+
+@login_required
+def user_decks(request):
+    user_decks = UserDeck.objects.filter(user=request.user)
+
+    # Create a list of decks with additional user privilege information
+    decks_with_privileges = []
+    for user_deck in user_decks:
+        deck_info = {
+            'deck_name': user_deck.deck.deck_name,
+            'deck_code': user_deck.deck.deck_code,
+            'deck_desc': user_deck.deck.deck_desc,
+            'user_privilege': user_deck.privilege
+        }
+        decks_with_privileges.append(deck_info)
+
+    return render(request, "user_decks.html", {'decks': decks_with_privileges})
+
 
 def save_deck_local(deck_name, deck_desc):
     deck = Deck(
@@ -93,99 +165,84 @@ def save_deck_local(deck_name, deck_desc):
 
     return deck
 
-def save_deck_user_privilege(user, deck, privilege):
-    if check_user(user):
-        user = User.objects.get(username=user)
-        deck = Deck.objects.get(deck_name=deck)
 
-        userDeck = UserDeck(
+def save_deck_user_privilege(username, deck_code, privilege):
+    """
+    Creates a relationship between a user and a deck with the specified privilege.
+
+    Args:
+        username: The username of the user
+        deck_code: The deck code to link
+        privilege: The privilege level (e.g., 'c' for creator)
+
+    Returns:
+        Boolean indicating success or failure
+    """
+    from django.contrib.auth.models import User
+
+    try:
+        print(f"Creating relationship: username={username}, deck_code={deck_code}, privilege={privilege}")
+
+        user = User.objects.get(username=username)
+        print(f"Found user with ID: {user.id}")
+
+        deck = Deck.objects.get(deck_code=deck_code)
+        print(f"Found deck with name: {deck.deck_name}")
+        user_deck = UserDeck(
             user=user,
             deck=deck,
             privilege=privilege
         )
-
-        userDeck.save()
-
+        user_deck.save()
+        print("User-deck relationship created successfully")
         return True
-
-    else:
+    except User.DoesNotExist:
+        print(f"Error: User '{username}' not found")
+        return False
+    except Deck.DoesNotExist:
+        print(f"Error: Deck with code '{deck_code}' not found")
+        return False
+    except Exception as e:
+        print(f"Error creating user-deck relationship: {str(e)}")
         return False
 
 
-def deck_creation_view(request):
-    return render(request, "deck_creation.html")
-
-def deck_creation_form(request):
-    if request.method == "POST":
-
-        form = NewDeckForm(request.POST)
-        if form.is_valid():
-            name = form.cleaned_data["name"]
-            desc = form.cleaned_data["desc"]
-            deck = save_deck_local(name, desc)
-            if save_deck_user_privilege("pedro", deck.deck_name, "c"):
-                return HttpResponse(f"Deck created: {deck.deck_name}, and your deck code is: '{deck.deck_code}'")
-            else:
-                return HttpResponse(f"Invalid form: {form.errors}")
-        else:
-            return HttpResponse(f"Invalid form: {form.is_valid()}")
-    else:
-        form = NewDeckForm()
-        return render(request, "deck_creation_form.html", {
-            'form': form
-        })
-
-def check_user(username):
-    user = User.objects
-    user = user.get(username=username)
-    return user is not None
-
-def change_password(request, username, old, new):
-    user = User.objects.get(username=username)
-    hash_old = sha256(old.encode('utf-8')).hexdigest()
-    db_old_password = user.password
-    if db_old_password != hash_old:
-        return HttpResponse("The old password doesn't match with the one in the database.")
-
-    user.password = sha256(new.encode('utf-8')).hexdigest()
-    user.save()
-    return HttpResponse(f"Password changed: {user.username}")
-
-def drop_user(username):
-    user = User.objects.get(username=username)
-    user.delete()
-
-def drop_deck(deck_name):
-    deck = Deck.objects.get(deck_name=deck_name)
-    deck_code = deck.deck_code
-    deck.delete()
-
-    deck_relations = UserDeck.objects.filter(deck=deck_code)
-    for deck_relation in deck_relations:
-        deck_relation.delete()
-
-    path = f"{project_root}/Server/{deck_code}.json"
-    if os.path.exists(path):
-        os.remove(path)
-
+@login_required
 def delete_deck(request, deck_code):
-    # check the privileges
-    # username = request.POST.get("username")
-    username = "pedro"
-    privilege = UserDeck.objects.get(user=username, deck=deck_code).privilege
-    if privilege == "c":
-        deck_name = Deck.objects.get(deck_code=deck_code).deck_name
-        drop_deck(deck_name)
+    try:
+        user_deck = UserDeck.objects.get(user=request.user, deck__deck_code=deck_code)
+        deck = user_deck.deck
+
+        if request.method == 'POST':
+            confirmed = request.POST.get('confirmed') == 'true'
+
+            if not confirmed:
+                return redirect('my_decks')
+
+            if user_deck.privilege == "c":
+                deck_name = deck.deck_name
+
+                UserDeck.objects.filter(deck=deck).delete()
+                deck.delete()
+
+                path = f"{project_root}/Server/{deck_code}.json"
+                if os.path.exists(path):
+                    os.remove(path)
+
+                messages.success(request, f"Deck '{deck_name}' has been deleted.")
+            else:
+                user_deck.delete()
+                messages.success(request, f"You have left the deck '{deck.deck_name}'.")
+
+            return redirect("my_decks")
+
+        context = {
+            'deck': deck,
+            'privilege': user_deck.privilege,
+            'is_creator': user_deck.privilege == 'c'
+        }
+        return render(request, 'login/confirm_deck_action.html', context)
+
+    except UserDeck.DoesNotExist:
+        messages.error(request, "Deck not found or you don't have access to it.")
         return redirect("my_decks")
-    else:
-        return HttpResponse(f"Invalid privilege: {privilege}")
-
-def user_decks(request):
-    # username = request.POST.get("username")
-    username = "pedro"
-    deck_codes = UserDeck.objects.filter(user=username).values_list('deck_id', flat=True)
-    decks = Deck.objects.filter(deck_code__in=deck_codes)
-
-    return render(request, "user_decks.html", {
-        'decks': decks
-    })

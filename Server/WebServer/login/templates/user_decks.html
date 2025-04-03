@@ -5,16 +5,31 @@
 {% block content %}
 <h1 class="title">My Decks</h1>
 
+<ul class="deck-list">
     {% for deck in decks %}
-        <li>
-            <h4>{{deck.deck_name}}: {{deck.deck_code}}</h4>
-            <p>
-                {{deck.deck_desc}}
-                <br>
-                <a href="{% url 'delete_deck' deck.deck_code %}">Delete</a>
-            </p>
+        <li class="deck-item">
+            <div class="deck-header">
+                <h4>{{deck.deck_name}}: {{deck.deck_code}}</h4>
+                <span class="privilege-badge {% if deck.user_privilege == 'c' %}privilege-creator{% else %}privilege-user{% endif %}">
+                    {{ deck.user_privilege|upper }}
+                </span>
+            </div>
+            <p class="deck-desc">{{deck.deck_desc}}</p>
 
-            <br>
+            <div class="deck-actions">
+                {% if deck.user_privilege == 'c' %}
+                    <a href="{% url 'delete_deck' deck.deck_code %}" class="btn-danger">Delete Deck</a>
+                {% else %}
+                    <a href="{% url 'delete_deck' deck.deck_code %}" class="btn-warning">Leave Deck</a>
+                {% endif %}
+            </div>
         </li>
+    {% empty %}
+        <li class="no-decks">You don't have any decks yet.</li>
     {% endfor %}
+</ul>
+
+<div class="action-bar">
+    <a href="{% url 'deck_creation_form' %}" class="btn-primary">Create New Deck</a>
+</div>
 {% endblock %}

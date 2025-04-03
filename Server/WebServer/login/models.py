@@ -1,16 +1,21 @@
 from django.db import models
+from django.contrib.auth.models import User
 
-# Create your models here.
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
 
-class User(models.Model):
-    username = models.CharField(max_length=20, primary_key=True)
-    password = models.CharField(max_length=100)
+    def __str__(self):
+        return self.user.username
 
 
 class Deck(models.Model):
     deck_name = models.CharField(max_length=100)
     deck_code = models.CharField(max_length=100, primary_key=True)
     deck_desc = models.TextField()
+
+    def __str__(self):
+        return self.deck_name
+
 
 class UserDeck(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
