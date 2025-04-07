@@ -95,6 +95,9 @@ class Client(QObject):
                 deck_code = get_code_from_deck(deck_name)
                 self.send_size_and_package(deck_code)
 
+                # Send deck name
+                self.send_size_and_package(deck_name)
+
                 # Send card data
                 json_data = json.dumps(cards)
                 self.sock.sendall(json_data.encode("utf-8"))
