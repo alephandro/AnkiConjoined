@@ -9,12 +9,15 @@
     {% for deck in decks %}
         <li class="deck-item">
             <div class="deck-header">
-                <h4>{{deck.deck_name}}: {{deck.deck_code}}</h4>
-                <span class="privilege-badge {% if deck.user_privilege == 'c' %}privilege-creator{% else %}privilege-user{% endif %}">
+                <h4>
+                    <a href="{% url 'deck_detail' deck.deck_code %}">
+                        {{deck.deck_name}}: {{deck.deck_code}}
+                    </a>
+                </h4>
+                <span class="privilege-badge {% if deck.user_privilege == 'c' %}privilege-creator{% elif deck.user_privilege == 'm' %}privilege-manager{% elif deck.user_privilege == 'w' %}privilege-writer{% else %}privilege-reader{% endif %}">
                     {{ deck.user_privilege|upper }}
                 </span>
             </div>
-            <p class="deck-desc">{{deck.deck_desc}}</p>
 
             <div class="deck-actions">
                 {% if deck.user_privilege == 'c' %}
