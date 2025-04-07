@@ -4,19 +4,24 @@ import time
 import os
 import sys
 from aqt import mw
-from aqt.qt import QObject, pyqtSignal, QSettings
+from aqt.qt import QObject, pyqtSignal, QSettings, QMessageBox
+from aqt.utils import showWarning
 
 # Import local modules
 from .auth_manager import AuthManager
 from .login_dialog import LoginDialog
-from .testAnkiConnected import (SYNC_FILE_PATH, DECKS_CODES_PATH, get_cards_from_deck, sync_card, update_json,
-                                get_value_from_json, sync_anki, check_for_deck_existence,
-                                get_code_from_deck, create_deck, check_for_deck_in_json, delete_deck_information,
-                                list_decks, log_error)
+from .testAnkiConnected import (
+    get_cards_from_deck, sync_card, update_json,
+    get_value_from_json, sync_anki, check_for_deck_existence,
+    get_code_from_deck, create_deck, check_for_deck_in_json,
+    delete_deck_information, list_decks, log_error
+)
 from .DataManagement.cards_management import collect_cards
 
 # Setup paths
 ADDON_DIR = os.path.dirname(os.path.abspath(__file__))
+SYNC_FILE_PATH = os.path.join(ADDON_DIR, "sync_log.json")
+DECKS_CODES_PATH = os.path.join(ADDON_DIR, "decks_codes.json")
 
 
 class Client(QObject):
@@ -38,16 +43,14 @@ class Client(QObject):
 
     def ensure_authenticated(self, parent=None):
         """Make sure user is authenticated before performing operations"""
-        if not self.auth_manager.is_authenticated():
-            # Show login dialog
-            credentials = LoginDialog.get_credentials(parent)
-            if not credentials:
-                return False  # User canceled login
-
-            # Set the authenticated username for operations
-            self.auth_manager.authenticate(credentials["username"], credentials["token"])
+        # First check if we already have valid credentials
+        if self.auth_manager.is_authenticated():
+            print("User is already authenticated")
             return True
-        return True
+
+        # Not authenticated, show login dialog
+        print("User needs to authenticate")
+        return LoginDialog.get_credentials(parent)
 
     def connect_to_server(self):
         """Connect to the server"""
@@ -57,12 +60,14 @@ class Client(QObject):
             print(f"Connected to server at {self.server_host}:{self.server_port}")
             return True
         except Exception as e:
-            log_error(f"Server connection failed: {str(e)}")
+            error_msg = f"Server connection failed: {str(e)}"
+            log_error(error_msg)
+            showWarning(f"Could not connect to the sync server.\n\n{error_msg}")
             return False
 
     def send_cards(self, deck_name, callback=None):
         """Send cards to server (async)"""
-        if not self.ensure_authenticated():
+        if not self.ensure_authenticated(mw):
             if callback:
                 callback(False, "Authentication required")
             return
@@ -124,7 +129,7 @@ class Client(QObject):
 
     def receive_cards(self, deck_name, callback=None):
         """Receive cards from server (async)"""
-        if not self.ensure_authenticated():
+        if not self.ensure_authenticated(mw):
             if callback:
                 callback(False, "Authentication required")
             return
@@ -197,7 +202,7 @@ class Client(QObject):
 
     def receive_deck_from_code(self, deck_code, callback=None):
         """Receive a new deck from server using its code (async)"""
-        if not self.ensure_authenticated():
+        if not self.ensure_authenticated(mw):
             if callback:
                 callback(False, "Authentication required")
             return
@@ -295,6 +300,11 @@ class Client(QObject):
     def logout(self):
         """Log out the current user"""
         self.auth_manager.logout()
+        QMessageBox.information(
+            mw,
+            "Logged Out",
+            "You have been logged out successfully."
+        )
 
 
 def workflow_simulation(client, create, receive, deck_name, new, delete, final_callback=None):
@@ -358,7 +368,6 @@ def workflow_simulation(client, create, receive, deck_name, new, delete, final_c
             workflow.add_operation(lambda callback: delete_deck_information(deck_name,
                                                                             lambda result: callback(True,
                                                                                                     "Deleted deck information")))
-
         # Final AnkiWeb sync
         workflow.add_operation(lambda callback: sync_anki(
             lambda success: callback(success, "AnkiWeb sync complete")))

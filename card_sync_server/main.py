@@ -8,6 +8,7 @@ import os
 from .client import Client, workflow_simulation
 from .login_dialog import LoginDialog
 from .auth_manager import AuthManager
+from .settings_dialog import SettingsDialog
 
 # Setup logging
 ADDON_DIR = os.path.dirname(__file__)
@@ -99,9 +100,10 @@ def setup_menu():
 
 # Show login dialog
 def show_login_dialog():
-    credentials = LoginDialog.get_credentials(mw)
-    if credentials:
+    if LoginDialog.get_credentials(mw):
         tooltip("Login successful!", period=3000)
+    else:
+        tooltip("Login canceled or failed", period=3000)
 
 
 # Logout the current user
@@ -113,52 +115,7 @@ def logout_user():
 
 # Show settings dialog
 def show_settings_dialog():
-    # Create a dialog
-    dialog = QDialog(mw)
-    dialog.setWindowTitle("Card Sync Settings")
-    dialog.setMinimumWidth(400)
-
-    layout = QVBoxLayout()
-
-    # Server settings
-    server_group = QGroupBox("Server Settings")
-    server_layout = QFormLayout()
-
-    # Load current settings
-    settings = QSettings("AnkiConjoined", "CardSync")
-    server_host = settings.value("server_host", "127.0.0.1")
-    server_port = settings.value("server_port", "9999")
-
-    # Host input
-    host_input = QLineEdit(server_host)
-    server_layout.addRow("Server Host:", host_input)
-
-    # Port input
-    port_input = QLineEdit(server_port)
-    port_input.setValidator(QIntValidator(1, 65535))
-    server_layout.addRow("Server Port:", port_input)
-
-    server_group.setLayout(server_layout)
-    layout.addWidget(server_group)
-
-    # Buttons
-    button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save |
-                                  QDialogButtonBox.StandardButton.Cancel)
-
-    def on_save():
-        # Save settings
-        settings.setValue("server_host", host_input.text())
-        settings.setValue("server_port", port_input.text())
-        tooltip("Settings saved!", period=2000)
-        dialog.accept()
-
-    qconnect(button_box.accepted, on_save)
-    qconnect(button_box.rejected, dialog.reject)
-
-    layout.addWidget(button_box)
-    dialog.setLayout(layout)
-
-    # Show dialog
+    dialog = SettingsDialog(mw)
     dialog.exec()
 
 
@@ -311,12 +268,12 @@ def execute_action(action, deck_name, deck_code=""):
             workflow_simulation(client, False, False, deck_code, True, False, on_workflow_complete)
         else:
             # Parameters for workflow_simulation:
-            create = action in ["create", "update"]
-            receive = action in ["receive", "update"]
+            create_op = action in ["create", "update"]
+            receive_op = action in ["receive", "update"]
             new_deck = False
-            delete = action == "delete"
+            delete_op = action == "delete"
 
-            workflow_simulation(client, create, receive, deck_name, new_deck, delete, on_workflow_complete)
+            workflow_simulation(client, create_op, receive_op, deck_name, new_deck, delete_op, on_workflow_complete)
 
     except Exception as e:
         progress.hide()

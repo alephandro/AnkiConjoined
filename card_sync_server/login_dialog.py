@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 from aqt.qt import (
@@ -5,6 +6,7 @@ from aqt.qt import (
     QLineEdit, QPushButton, QMessageBox, QFormLayout,
     QCheckBox, QSettings
 )
+from .auth_manager import AuthManager
 
 
 class LoginDialog(QDialog):
@@ -15,6 +17,12 @@ class LoginDialog(QDialog):
         self.setWindowTitle("Login to Anki Sync Server")
         self.setMinimumWidth(300)
 
+        # Get addon directory
+        self.addon_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Initialize auth manager
+        self.auth_manager = AuthManager(self.addon_dir)
+
         # Settings for remembering username
         self.settings = QSettings("AnkiConjoined", "CardSync")
 
@@ -24,7 +32,7 @@ class LoginDialog(QDialog):
 
         # Username field
         self.username_edit = QLineEdit()
-        saved_username = self.settings.value("username", "")
+        saved_username = self.settings.value("saved_username", "")
         self.username_edit.setText(saved_username)
         form_layout.addRow("Username:", self.username_edit)
 
@@ -37,9 +45,15 @@ class LoginDialog(QDialog):
         self.remember_checkbox = QCheckBox("Remember username")
         self.remember_checkbox.setChecked(bool(saved_username))
 
+        # Server info label
+        server_url = self.settings.value("web_url", "http://127.0.0.1:8000")
+        self.server_info = QLabel(f"Server: {server_url}")
+        self.server_info.setStyleSheet("color: gray; font-size: 10px;")
+
         # Add form to main layout
         layout.addLayout(form_layout)
         layout.addWidget(self.remember_checkbox)
+        layout.addWidget(self.server_info)
 
         # Buttons layout
         button_layout = QHBoxLayout()
@@ -62,12 +76,8 @@ class LoginDialog(QDialog):
         # Set layout for dialog
         self.setLayout(layout)
 
-        # Server URL - would come from config
-        self.server_url = "http://127.0.0.1:8000"  # Default Django development server
-
         # Connection result
-        self.auth_token = None
-        self.authenticated_username = None
+        self.auth_success = False
 
     def try_login(self):
         """Attempt to log in to the server."""
@@ -78,48 +88,28 @@ class LoginDialog(QDialog):
             QMessageBox.warning(self, "Login Error", "Please enter both username and password.")
             return
 
-        try:
-            # Save username if remember is checked
-            if self.remember_checkbox.isChecked():
-                self.settings.setValue("username", username)
-            else:
-                self.settings.remove("username")
+        # Save username if remember is checked
+        if self.remember_checkbox.isChecked():
+            self.settings.setValue("saved_username", username)
+        else:
+            self.settings.remove("saved_username")
 
-            # Attempt to authenticate with server
-            response = requests.post(
-                f"{self.server_url}/api/token-auth/",
-                json={"username": username, "password": password},
-                timeout=5
-            )
+        # Attempt to authenticate
+        success, message = self.auth_manager.authenticate(username, password)
 
-            if response.status_code == 200:
-                data = response.json()
-                self.auth_token = data.get("token")
-                self.authenticated_username = username
-                QMessageBox.information(self, "Success", f"Welcome, {username}!")
-                self.accept()
-            else:
-                error_msg = "Invalid username or password."
-                if response.status_code != 400:  # Not a validation error
-                    error_msg = f"Server error: {response.status_code}"
-                QMessageBox.warning(self, "Login Failed", error_msg)
-
-        except requests.RequestException as e:
-            QMessageBox.critical(
-                self,
-                "Connection Error",
-                f"Could not connect to the server. Please check your internet connection.\n\nError: {str(e)}"
-            )
+        if success:
+            self.auth_success = True
+            QMessageBox.information(self, "Success", f"Welcome, {username}!")
+            self.accept()
+        else:
+            QMessageBox.warning(self, "Login Failed", message)
 
     @staticmethod
     def get_credentials(parent=None):
-        """Static method to create the dialog and get credentials."""
+        """Static method to create the dialog and run it."""
         dialog = LoginDialog(parent)
         result = dialog.exec()
 
-        if result == QDialog.DialogCode.Accepted:
-            return {
-                "username": dialog.authenticated_username,
-                "token": dialog.auth_token
-            }
-        return None
+        if result == QDialog.DialogCode.Accepted and dialog.auth_success:
+            return True
+        return False

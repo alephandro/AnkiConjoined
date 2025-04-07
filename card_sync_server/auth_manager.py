@@ -13,7 +13,7 @@ class AuthManager:
         self.addon_dir = addon_dir
         self.auth_file = os.path.join(addon_dir, "auth_data.json")
         self.settings = QSettings("AnkiConjoined", "CardSync")
-        self.server_url = self.settings.value("server_url", "http://127.0.0.1:8000")
+        self.server_url = self.settings.value("web_url", "http://127.0.0.1:8000")
 
         # Load existing auth data if available
         self.auth_data = self._load_auth_data()
@@ -31,6 +31,9 @@ class AuthManager:
     def _save_auth_data(self, auth_data):
         """Save authentication data to file"""
         try:
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(self.auth_file), exist_ok=True)
+
             with open(self.auth_file, 'w') as f:
                 json.dump(auth_data, f)
             return True
@@ -57,14 +60,14 @@ class AuthManager:
             # If token is invalid, clear auth data
             self._clear_auth_data()
             return False
-        except requests.RequestException:
-            # If server is not reachable, assume token is valid (offline mode)
-            # This allows users to continue working offline
+        except requests.RequestException as e:
+            print(f"Connection error when verifying token: {e}")
             return True
 
     def authenticate(self, username, password):
         """Authenticate with server and get token"""
         try:
+            print(f"Authenticating with server: {self.server_url}")
             response = requests.post(
                 f"{self.server_url}/api/token-auth/",
                 json={"username": username, "password": password},
@@ -73,6 +76,7 @@ class AuthManager:
 
             if response.status_code == 200:
                 auth_data = response.json()
+                print(f"Authentication successful: {auth_data}")
                 self._save_auth_data(auth_data)
                 self.auth_data = auth_data
                 return True, "Authentication successful"
@@ -116,4 +120,4 @@ class AuthManager:
     def set_server_url(self, url):
         """Set server URL and save to settings"""
         self.server_url = url
-        self.settings.setValue("server_url", url)
+        self.settings.setValue("web_url", url)
