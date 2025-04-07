@@ -240,10 +240,13 @@ class Client(QObject):
                         callback(False, "Access denied or server error")
                     return
 
+                # Receive the name of the deck
+                deck_name_size = conn.recv(self.HEADER).decode("utf-8")
+                deck_name = conn.recv(int(deck_name_size)).decode("utf-8")
+
                 cards = collect_cards(self.sock)
                 if not cards:
                     print(f"No cards in deck with code {deck_code}, creating empty deck")
-                    deck_name = f"Deck_{deck_code}"
 
                     def on_deck_created(result):
                         update_json(DECKS_CODES_PATH, deck_name, deck_code)
@@ -257,9 +260,6 @@ class Client(QObject):
 
                     create_deck(deck_name, on_deck_created)
                     return
-
-                first_key = next(iter(cards))
-                deck_name = cards[first_key]["deck_name"]
 
                 def on_deck_created(result):
                     sync_count = 0

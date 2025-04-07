@@ -10,4 +10,5 @@
 /Client/pathToDatabase
 *.json
 error_log.txt
-
+/Server/WebServer/tokens/
+/Server/WebServer/db.sqlite3
