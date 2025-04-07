@@ -1,11 +1,20 @@
+# Modified api_views.py file
+
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
 import logging
+import os
+import uuid
+from datetime import datetime, timedelta
 
 # Configure logger
 logger = logging.getLogger(__name__)
+
+# Create a directory to store tokens if it doesn't exist
+TOKEN_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tokens')
+os.makedirs(TOKEN_DIR, exist_ok=True)
 
 
 @csrf_exempt
@@ -40,25 +49,20 @@ def token_auth(request):
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
-            # User is authenticated, generate a simple token
-            from hashlib import sha256
-            from django.utils import timezone
+            # User is authenticated, generate a token
+            token = str(uuid.uuid4())
 
-            # Generate a token based on username and current time
-            token_base = f"{username}:{timezone.now().timestamp()}"
-            token = sha256(token_base.encode()).hexdigest()
-
-            # Store token in session
-            session_key = f"auth_token_{token}"
-            token_data = {
-                "user_id": user.id,
-                "username": user.username,
-                "created": timezone.now().isoformat()
-            }
-
-            # Store in session
-            request.session[session_key] = token_data
-            request.session.modified = True  # Ensure session is saved
+            # Store token in a file
+            token_file = os.path.join(TOKEN_DIR, token)
+            with open(token_file, 'w') as f:
+                token_data = {
+                    "user_id": user.id,
+                    "username": user.username,
+                    "created": datetime.now().isoformat(),
+                    # Token expires in 24 hours
+                    "expires": (datetime.now() + timedelta(hours=24)).isoformat()
+                }
+                json.dump(token_data, f)
 
             logger.info("Authentication successful for user: %s", username)
 
@@ -100,11 +104,20 @@ def verify_token(request):
             logger.warning("Token is required in verify_token request")
             return JsonResponse({"error": "Token is required"}, status=400)
 
-        # Check if token exists in session
-        session_key = f"auth_token_{token}"
-        token_data = request.session.get(session_key)
+        # Check if token file exists
+        token_file = os.path.join(TOKEN_DIR, token)
+        if os.path.exists(token_file):
+            with open(token_file, 'r') as f:
+                token_data = json.load(f)
 
-        if token_data:
+            # Check if token is expired
+            expires = datetime.fromisoformat(token_data["expires"])
+            if datetime.now() > expires:
+                # Token expired, delete it
+                os.remove(token_file)
+                logger.warning("Token expired: %s", token)
+                return JsonResponse({"valid": False, "error": "Token expired"}, status=401)
+
             logger.info("Token verification successful: %s", token)
             return JsonResponse({
                 "valid": True,
@@ -112,8 +125,8 @@ def verify_token(request):
                 "username": token_data["username"]
             })
         else:
-            logger.warning("Invalid or expired token: %s", token)
-            return JsonResponse({"valid": False, "error": "Invalid or expired token"}, status=401)
+            logger.warning("Invalid token: %s", token)
+            return JsonResponse({"valid": False, "error": "Invalid token"}, status=401)
 
     except Exception as e:
         logger.exception("Error in verify_token: %s", str(e))
