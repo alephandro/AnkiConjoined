@@ -172,9 +172,14 @@ def new_deck_local(deck_name, deck_code):
     deck = Deck(
         deck_name=deck_name,
         deck_code=deck_code,
-        deck_desc=""
+        deck_desc="Deck created with the plugin and therefore does not have a proper description. Change it if needed."
     )
     deck.save()
+
+
+def retrieve_deck_name(deck_code):
+    deck = Deck.objects.get(deck_code=deck_code)
+    return deck.name
 
 
 def save_deck_user_privilege(username, deck_code, privilege):

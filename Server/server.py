@@ -14,7 +14,7 @@ django.setup()
 
 from django.contrib.auth.models import User
 from login.models import Deck, UserDeck
-from login.views import save_deck_user_privilege, new_deck_local
+from login.views import save_deck_user_privilege, new_deck_local, retrieve_deck_name
 from DataManagement.cards_management import *
 
 
@@ -29,6 +29,17 @@ def check_for_privilege(username, deck_code, privileges):
     except Exception as e:
         print(f"Error checking privileges: {str(e)}")
         return False
+
+def send_size_and_package_server(conn, info):
+    """Send data size followed by data"""
+    if not isinstance(info, str):
+        info = str(info)
+
+    info_encoded = info.encode("utf-8")
+    info_length = str(len(info_encoded)).encode("utf-8")
+    info_length += b' ' * (self.HEADER - len(info_length))
+    conn.sendall(info_length)
+    conn.sendall(info_encoded)
 
 
 class Server:
@@ -79,6 +90,7 @@ class Server:
                         conn.sendall(str(1).encode("utf-8"))
                         self.add_cards(conn, False)
 
+
                     else:
                         print("Privilege not found or invalid, sending fail...")
                         conn.sendall(str(0).encode("utf-8"))
@@ -106,6 +118,8 @@ class Server:
                     if check_for_privilege(username, deck_code, ["c", "m", "w", "r"]):
                         print("Privilege found, sending ok...")
                         conn.sendall(str(1).encode("utf-8"))
+                        deck_name = retrieve_deck_name(deck_code)
+                        send_size_and_package_server(conn, deck_name)
                         cards = self.retrieve_cards_from_json(0)
                         conn.send(json.dumps(cards).encode("utf-8"))
 
@@ -177,6 +191,8 @@ class Server:
         print(f"JSON updated: {new_count} new cards, {updated_count} cards updated")
 
     def create_deck(self, new_cards):
+        all_cards = {}
+
         for card in new_cards:
             all_cards[str(card["stable_uid"])] = card
 
@@ -196,6 +212,8 @@ class Server:
             print(f"Error reading {self.json_file}, will create a new file")
 
         return {k: v for k, v in cards.items() if v["last_modified"] > timestamp}
+
+
 
 # --- main ---
 if __name__ == "__main__":
