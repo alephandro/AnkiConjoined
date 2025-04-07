@@ -30,17 +30,6 @@ def check_for_privilege(username, deck_code, privileges):
         print(f"Error checking privileges: {str(e)}")
         return False
 
-def send_size_and_package_server(conn, info):
-    """Send data size followed by data"""
-    if not isinstance(info, str):
-        info = str(info)
-
-    info_encoded = info.encode("utf-8")
-    info_length = str(len(info_encoded)).encode("utf-8")
-    info_length += b' ' * (self.HEADER - len(info_length))
-    conn.sendall(info_length)
-    conn.sendall(info_encoded)
-
 
 class Server:
     HEADER = 64
@@ -119,7 +108,7 @@ class Server:
                         print("Privilege found, sending ok...")
                         conn.sendall(str(1).encode("utf-8"))
                         deck_name = retrieve_deck_name(deck_code)
-                        send_size_and_package_server(conn, deck_name)
+                        self.send_size_and_package_server(conn, deck_name)
                         cards = self.retrieve_cards_from_json(0)
                         conn.send(json.dumps(cards).encode("utf-8"))
 
@@ -212,6 +201,17 @@ class Server:
             print(f"Error reading {self.json_file}, will create a new file")
 
         return {k: v for k, v in cards.items() if v["last_modified"] > timestamp}
+
+    def send_size_and_package_server(self, conn, info):
+        """Send data size followed by data"""
+        if not isinstance(info, str):
+            info = str(info)
+
+        info_encoded = info.encode("utf-8")
+        info_length = str(len(info_encoded)).encode("utf-8")
+        info_length += b' ' * (self.HEADER - len(info_length))
+        conn.sendall(info_length)
+        conn.sendall(info_encoded)
 
 
 

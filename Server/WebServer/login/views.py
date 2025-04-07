@@ -179,7 +179,7 @@ def new_deck_local(deck_name, deck_code):
 
 def retrieve_deck_name(deck_code):
     deck = Deck.objects.get(deck_code=deck_code)
-    return deck.name
+    return deck.deck_name
 
 
 def save_deck_user_privilege(username, deck_code, privilege):
