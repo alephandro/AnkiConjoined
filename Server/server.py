@@ -59,28 +59,34 @@ class Server:
             deck_code_size = conn.recv(self.HEADER).decode("utf-8")
             deck_code = conn.recv(int(deck_code_size)).decode("utf-8")
             self.json_file = deck_code + ".json"
+
             match choice:
                 case "0":
                     print("User is trying to send their updated/new cards")
                     print("Checking for privilege...")
+                    deck_name_size = conn.recv(self.HEADER).decode("utf-8")
+                    deck_name = conn.recv(int(deck_name_size)).decode("utf-8")
+
                     if not os.path.exists(self.json_file):
                         print("Creating new deck...")
-                        deck_name_size = conn.recv(self.HEADER).decode("utf-8")
-                        deck_name = conn.recv(int(deck_name_size)).decode("utf-8")
                         conn.sendall(str(1).encode("utf-8"))
                         self.add_cards(conn, True)
                         new_deck_local(deck_name, deck_code)
                         save_deck_user_privilege(username, deck_code, "c")
+
                     elif check_for_privilege(username, deck_code, ["c", "m", "w"]):
                         print("Privilege found, sending ok...")
                         conn.sendall(str(1).encode("utf-8"))
                         self.add_cards(conn, False)
+
                     else:
-                        print("Privilege not found, sending fail...")
+                        print("Privilege not found or invalid, sending fail...")
                         conn.sendall(str(0).encode("utf-8"))
+
                 case "1":
                     print("Trying to send the updated/new cards based on the user's timestamp")
                     print("Checking for privilege...")
+
                     if check_for_privilege(username, deck_code, ["c", "m", "w", "r"]):
                         print("Privilege found, sending ok...")
                         conn.sendall(str(1).encode("utf-8"))
@@ -88,20 +94,25 @@ class Server:
                         timestamp = conn.recv(int(timestamp_length)).decode("utf-8")
                         cards = self.retrieve_cards_from_json(int(timestamp))
                         conn.send(json.dumps(cards).encode("utf-8"))
+
                     else:
                         print("Privilege not found, sending fail...")
                         conn.sendall(str(0).encode("utf-8"))
+
                 case "2":
                     print("Trying to send new deck to the user")
                     print("Checking for privilege...")
+
                     if check_for_privilege(username, deck_code, ["c", "m", "w", "r"]):
                         print("Privilege found, sending ok...")
                         conn.sendall(str(1).encode("utf-8"))
                         cards = self.retrieve_cards_from_json(0)
                         conn.send(json.dumps(cards).encode("utf-8"))
+
                     else:
                         print("Privilege not found, sending fail...")
                         conn.sendall(str(0).encode("utf-8"))
+
                 case _:
                     print("Invalid choice")
         except Exception as e:
