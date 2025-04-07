@@ -2,8 +2,31 @@ import socket
 import threading
 import json
 import os
+import sys
+import django
 
-from DataManagement.cards_management import collect_cards, generate_stable_uid
+SERVER_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.abspath(os.path.join(SERVER_DIR, 'WebServer'))
+sys.path.append(PROJECT_DIR)
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'WebServer.settings')
+django.setup()
+
+from django.contrib.auth.models import User
+from login.models import Deck, UserDeck
+
+
+def check_for_privilege(username, deck_code, privileges):
+    try:
+        user = User.objects.get(username=username)
+        user_deck = UserDeck.objects.get(user=user, deck__deck_code=deck_code)
+        return user_deck.privilege in privileges
+    except (User.DoesNotExist, UserDeck.DoesNotExist, Deck.DoesNotExist):
+        print(f"User {username} not found or doesn't have access to deck {deck_code}")
+        return False
+    except Exception as e:
+        print(f"Error checking privileges: {str(e)}")
+        return False
 
 
 class Server:
@@ -29,23 +52,46 @@ class Server:
     def handle_client(self, conn):
         try:
             choice = conn.recv(1).decode("utf-8")
-            deck_name_size = conn.recv(self.HEADER).decode("utf-8")
-            deck_name = conn.recv(int(deck_name_size)).decode("utf-8")
-            self.json_file = deck_name + ".json"
+            username_size = conn.recv(self.HEADER).decode("utf-8")
+            username = conn.recv(int(username_size)).decode("utf-8")
+            deck_code_size = conn.recv(self.HEADER).decode("utf-8")
+            deck_code = conn.recv(int(deck_code_size)).decode("utf-8")
+            self.json_file = deck_code + ".json"
             match choice:
                 case "0":
-                    print("User is sending their updated/new cards")
-                    self.add_cards(conn)
+                    print("User is trying to send their updated/new cards")
+                    print("Checking for privilege...")
+                    if check_for_privilege(username, deck_code, ["c", "m", "w"]):
+                        print("Privilege found, sending ok...")
+                        conn.sendall(str(1).encode("utf-8"))
+                        self.add_cards(conn)
+                    else:
+                        print("Privilege not found, sending fail...")
+                        conn.sendall(str(0).encode("utf-8"))
                 case "1":
-                    print("Sending the updated/new cards based on the user's timestamp")
-                    timestamp_length = conn.recv(int(self.HEADER)).decode("utf-8")
-                    timestamp = conn.recv(int(timestamp_length)).decode("utf-8")
-                    cards = self.retrieve_cards_from_json(int(timestamp))
-                    conn.send(json.dumps(cards).encode("utf-8"))
+                    print("Trying to send the updated/new cards based on the user's timestamp")
+                    print("Checking for privilege...")
+                    if check_for_privilege(username, deck_code, ["c", "m", "w", "r"]):
+                        print("Privilege found, sending ok...")
+                        conn.sendall(str(1).encode("utf-8"))
+                        timestamp_length = conn.recv(int(self.HEADER)).decode("utf-8")
+                        timestamp = conn.recv(int(timestamp_length)).decode("utf-8")
+                        cards = self.retrieve_cards_from_json(int(timestamp))
+                        conn.send(json.dumps(cards).encode("utf-8"))
+                    else:
+                        print("Privilege not found, sending fail...")
+                        conn.sendall(str(0).encode("utf-8"))
                 case "2":
-                    print("Sending new deck to the user")
-                    cards = self.retrieve_cards_from_json(0)
-                    conn.send(json.dumps(cards).encode("utf-8"))
+                    print("Trying to send new deck to the user")
+                    print("Checking for privilege...")
+                    if check_for_privilege(username, deck_code, ["c", "m", "w", "r"]):
+                        print("Privilege found, sending ok...")
+                        conn.sendall(str(1).encode("utf-8"))
+                        cards = self.retrieve_cards_from_json(0)
+                        conn.send(json.dumps(cards).encode("utf-8"))
+                    else:
+                        print("Privilege not found, sending fail...")
+                        conn.sendall(str(0).encode("utf-8"))
                 case _:
                     print("Invalid choice")
         except Exception as e:
@@ -86,6 +132,9 @@ class Server:
                 print(f"Loaded {len(all_cards)} existing cards from {self.json_file}")
             except json.JSONDecodeError:
                 print(f"Error reading {self.json_file}, will create a new file")
+
+        else:
+            print("New deck")
 
         updated_count = 0
         new_count = 0
