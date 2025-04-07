@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from login import views
+from login.api_views import token_auth, verify_token
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -41,4 +42,8 @@ urlpatterns = [
     path('decks/<str:deck_code>/users/<str:username>/change-role/', views.change_user_role, name='change_user_role'),
     path('decks/<str:deck_code>/users/<str:username>/remove/', views.remove_deck_user, name='remove_deck_user'),
     path('decks/<str:deck_code>/users/add/', views.add_deck_user, name='add_deck_user'),
+
+    # Login API
+    path('api/token-auth/', token_auth, name='token_auth'),
+    path('api/verify-token/', verify_token, name='verify_token'),
 ]
