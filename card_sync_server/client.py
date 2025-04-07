@@ -241,8 +241,8 @@ class Client(QObject):
                     return
 
                 # Receive the name of the deck
-                deck_name_size = conn.recv(self.HEADER).decode("utf-8")
-                deck_name = conn.recv(int(deck_name_size)).decode("utf-8")
+                deck_name_size = self.sock.recv(self.HEADER).decode("utf-8")
+                deck_name = self.sock.recv(int(deck_name_size)).decode("utf-8")
 
                 cards = collect_cards(self.sock)
                 if not cards:
