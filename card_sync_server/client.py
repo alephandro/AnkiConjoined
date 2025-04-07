@@ -239,9 +239,20 @@ class Client(QObject):
 
                 cards = collect_cards(self.sock)
                 if not cards:
-                    print(f"There is no deck with code {deck_code}")
-                    if callback:
-                        callback(False, f"No deck found with code {deck_code}")
+                    print(f"No cards in deck with code {deck_code}, creating empty deck")
+                    deck_name = f"Deck_{deck_code}"
+
+                    def on_deck_created(result):
+                        update_json(DECKS_CODES_PATH, deck_name, deck_code)
+                        update_json(SYNC_FILE_PATH, deck_name, int(time.time()))
+
+                        def on_anki_synced(success):
+                            if callback:
+                                callback(True, f"Empty deck '{deck_name}' created successfully")
+
+                        sync_anki(on_anki_synced)
+
+                    create_deck(deck_name, on_deck_created)
                     return
 
                 first_key = next(iter(cards))
