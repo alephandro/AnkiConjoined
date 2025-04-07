@@ -2,34 +2,59 @@ import socket
 import json
 import time
 import os
+import sys
+from aqt import mw
+from aqt.qt import QObject, pyqtSignal, QSettings
 
-ADDON_DIR = os.path.dirname(__file__)
-SYNC_FILE_PATH = os.path.join(ADDON_DIR, "sync_log.json")
-DECKS_CODES_PATH = os.path.join(ADDON_DIR, "decks_codes.json")
-
-from .testAnkiConnected import (
-    get_cards_from_deck, sync_card, update_json,
-    get_value_from_json, sync_anki, check_for_deck_existence,
-    get_code_from_deck, create_deck, check_for_deck_in_json,
-    delete_deck_information, log_error
-)
-
+# Import local modules
+from .auth_manager import AuthManager
+from .login_dialog import LoginDialog
+from .testAnkiConnected import (SYNC_FILE_PATH, DECKS_CODES_PATH, get_cards_from_deck, sync_card, update_json,
+                                get_value_from_json, sync_anki, check_for_deck_existence,
+                                get_code_from_deck, create_deck, check_for_deck_in_json, delete_deck_information,
+                                list_decks, log_error)
 from .DataManagement.cards_management import collect_cards
 
+# Setup paths
+ADDON_DIR = os.path.dirname(os.path.abspath(__file__))
 
-class Client:
+
+class Client(QObject):
     HEADER = 64
-    HOST = "127.0.0.1"
-    PORT = 9999
+
+    # Define signals for async operations
+    operation_complete = pyqtSignal(bool, str)
 
     def __init__(self):
+        super().__init__()
+        # Load settings
+        self.settings = QSettings("AnkiConjoined", "CardSync")
+        self.server_host = self.settings.value("server_host", "127.0.0.1")
+        self.server_port = int(self.settings.value("server_port", 9999))
+
+        # Initialize auth manager
+        self.auth_manager = AuthManager(ADDON_DIR)
         self.sock = None
 
+    def ensure_authenticated(self, parent=None):
+        """Make sure user is authenticated before performing operations"""
+        if not self.auth_manager.is_authenticated():
+            # Show login dialog
+            credentials = LoginDialog.get_credentials(parent)
+            if not credentials:
+                return False  # User canceled login
+
+            # Set the authenticated username for operations
+            self.auth_manager.authenticate(credentials["username"], credentials["token"])
+            return True
+        return True
+
     def connect_to_server(self):
+        """Connect to the server"""
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.connect((self.HOST, self.PORT))
-            print("Connected to server.")
+            self.sock.connect((self.server_host, self.server_port))
+            print(f"Connected to server at {self.server_host}:{self.server_port}")
             return True
         except Exception as e:
             log_error(f"Server connection failed: {str(e)}")
@@ -37,6 +62,10 @@ class Client:
 
     def send_cards(self, deck_name, callback=None):
         """Send cards to server (async)"""
+        if not self.ensure_authenticated():
+            if callback:
+                callback(False, "Authentication required")
+            return
 
         def on_cards_fetched(cards):
             if not cards:
@@ -50,13 +79,23 @@ class Client:
                         callback(False, "Failed to connect to server")
                     return
 
+                # Send operation type (0 = send cards)
                 self.sock.sendall(str(0).encode("utf-8"))
+
+                # Send authenticated username
+                username = self.auth_manager.get_username()
+                self.send_size_and_package(username)
+
+                # Send deck code
                 deck_code = get_code_from_deck(deck_name)
                 self.send_size_and_package(deck_code)
+
+                # Send card data
                 json_data = json.dumps(cards)
                 self.sock.sendall(json_data.encode("utf-8"))
                 self.sock.shutdown(socket.SHUT_WR)
 
+                # Get response
                 response = self.sock.recv(1).decode("utf-8")
                 if response == "1":
                     print("Cards sent and stored successfully.")
@@ -85,18 +124,40 @@ class Client:
 
     def receive_cards(self, deck_name, callback=None):
         """Receive cards from server (async)"""
+        if not self.ensure_authenticated():
+            if callback:
+                callback(False, "Authentication required")
+            return
+
         try:
             if not self.connect_to_server():
                 if callback:
                     callback(False, "Failed to connect to server")
                 return
 
-            timestamp = get_value_from_json(SYNC_FILE_PATH, deck_name)
+            # Send operation type (1 = receive cards)
             self.sock.sendall(str(1).encode("utf-8"))
+
+            # Send authenticated username
+            username = self.auth_manager.get_username()
+            self.send_size_and_package(username)
+
+            # Send deck code
             deck_code = get_code_from_deck(deck_name)
             self.send_size_and_package(deck_code)
+
+            # Send timestamp of last sync
+            timestamp = get_value_from_json(SYNC_FILE_PATH, deck_name)
             self.send_size_and_package(timestamp)
 
+            # Get response - check if server allows access
+            response = self.sock.recv(1).decode("utf-8")
+            if response != "1":
+                if callback:
+                    callback(False, "Access denied or server error")
+                return
+
+            # Receive card data
             cards = collect_cards(self.sock)
             if not cards:
                 if callback:
@@ -136,6 +197,10 @@ class Client:
 
     def receive_deck_from_code(self, deck_code, callback=None):
         """Receive a new deck from server using its code (async)"""
+        if not self.ensure_authenticated():
+            if callback:
+                callback(False, "Authentication required")
+            return
 
         def on_deck_checked(exists):
             if exists:
@@ -150,8 +215,22 @@ class Client:
                         callback(False, "Failed to connect to server")
                     return
 
+                # Send operation type (2 = get deck by code)
                 self.sock.sendall(str(2).encode("utf-8"))
+
+                # Send authenticated username
+                username = self.auth_manager.get_username()
+                self.send_size_and_package(username)
+
+                # Send deck code
                 self.send_size_and_package(deck_code)
+
+                # Get response - check if server allows access
+                response = self.sock.recv(1).decode("utf-8")
+                if response != "1":
+                    if callback:
+                        callback(False, "Access denied or server error")
+                    return
 
                 cards = collect_cards(self.sock)
                 if not cards:
@@ -213,9 +292,19 @@ class Client:
         self.sock.sendall(info_length)
         self.sock.sendall(info_encoded)
 
+    def logout(self):
+        """Log out the current user"""
+        self.auth_manager.logout()
+
 
 def workflow_simulation(client, create, receive, deck_name, new, delete, final_callback=None):
     """Run a workflow of operations with proper callbacks"""
+
+    # Check authentication first
+    if not client.ensure_authenticated(mw):
+        if final_callback:
+            final_callback(False, "Authentication required")
+        return
 
     # THIS IS THE FIX FOR RECURSION ISSUES
     # We'll use a class to track state instead of recursion
