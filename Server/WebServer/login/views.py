@@ -168,6 +168,14 @@ def save_deck_local(deck_name, deck_desc):
 
     return deck
 
+def new_deck_local(deck_name, deck_code):
+    deck = Deck(
+        deck_name=deck_name,
+        deck_code=deck_code,
+        deck_desc=""
+    )
+    deck.save()
+
 
 def save_deck_user_privilege(username, deck_code, privilege):
     from django.contrib.auth.models import User

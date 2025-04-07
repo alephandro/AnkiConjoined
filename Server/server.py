@@ -14,6 +14,8 @@ django.setup()
 
 from django.contrib.auth.models import User
 from login.models import Deck, UserDeck
+from login.views import save_deck_user_privilege, new_deck_local
+from DataManagement.cards_management import *
 
 
 def check_for_privilege(username, deck_code, privileges):
@@ -61,10 +63,18 @@ class Server:
                 case "0":
                     print("User is trying to send their updated/new cards")
                     print("Checking for privilege...")
-                    if check_for_privilege(username, deck_code, ["c", "m", "w"]):
+                    if not os.path.exists(self.json_file):
+                        print("Creating new deck...")
+                        deck_name_size = conn.recv(self.HEADER).decode("utf-8")
+                        deck_name = conn.recv(int(deck_name_size)).decode("utf-8")
+                        conn.sendall(str(1).encode("utf-8"))
+                        self.add_cards(conn, True)
+                        new_deck_local(deck_name, deck_code)
+                        save_deck_user_privilege(username, deck_code, "c")
+                    elif check_for_privilege(username, deck_code, ["c", "m", "w"]):
                         print("Privilege found, sending ok...")
                         conn.sendall(str(1).encode("utf-8"))
-                        self.add_cards(conn)
+                        self.add_cards(conn, False)
                     else:
                         print("Privilege not found, sending fail...")
                         conn.sendall(str(0).encode("utf-8"))
@@ -99,11 +109,13 @@ class Server:
         finally:
             conn.close()
 
-    def add_cards(self, conn):
+    def add_cards(self, conn, new):
         try:
             cards = collect_cards(conn)
-            self.save_cards_to_json(cards)
-
+            if new:
+                self.create_deck(cards)
+            else:
+                self.save_cards_to_json(cards)
             print("Sending success response (1)")
             conn.sendall(str(1).encode("utf-8"))
 
@@ -116,25 +128,21 @@ class Server:
         """Save cards to JSON file, merging with existing data if the file exists."""
         all_cards = {}
 
-        if os.path.exists(self.json_file):
-            try:
-                with open(self.json_file, "r") as infile:
-                    existing_data = json.load(infile)
+        try:
+            with open(self.json_file, "r") as infile:
+                existing_data = json.load(infile)
 
-                    if isinstance(existing_data, list):
-                        for card in existing_data:
-                            if "stable_uid" in card:
-                                all_cards[str(card["stable_uid"])] = card
+                if isinstance(existing_data, list):
+                    for card in existing_data:
+                        if "stable_uid" in card:
+                            all_cards[str(card["stable_uid"])] = card
 
-                    elif isinstance(existing_data, dict):
-                        all_cards = existing_data
+                elif isinstance(existing_data, dict):
+                    all_cards = existing_data
 
-                print(f"Loaded {len(all_cards)} existing cards from {self.json_file}")
-            except json.JSONDecodeError:
-                print(f"Error reading {self.json_file}, will create a new file")
-
-        else:
-            print("New deck")
+            print(f"Loaded {len(all_cards)} existing cards from {self.json_file}")
+        except json.JSONDecodeError:
+            print(f"Error reading {self.json_file}, will create a new file")
 
         updated_count = 0
         new_count = 0
@@ -156,6 +164,15 @@ class Server:
             json.dump(all_cards, outfile, indent=4)
 
         print(f"JSON updated: {new_count} new cards, {updated_count} cards updated")
+
+    def create_deck(self, new_cards):
+        for card in new_cards:
+            all_cards[str(card["stable_uid"])] = card
+
+        with open(self.json_file, "w") as outfile:
+            json.dump(all_cards, outfile, indent=4)
+
+        print(f"JSON created: {len(new_cards)} new cards")
 
     def retrieve_cards_from_json(self, timestamp):
         """Retrieve the newer/updated cards from JSON file based on the timestamp introduced as parameter."""
