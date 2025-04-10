@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>
+        {% block title %}
+        {% endblock %}
+        | WebServer
+    </title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+
+    <header>
+        <div id="logotype">
+            <img src="{% static 'images/logo.png' %}"/>
+            <h1>Anki Conjoined</h1>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+                {% if request.user.is_authenticated %}
+                    <li>
+                        <a href="{% url 'index' %}">Main Page</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'my_decks' %}">My Decks</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'deck_creation_form' %}">Create Deck</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'logout' %}">Logout ({{ request.user.username }})</a>
+                    </li>
+                {% else %}
+                    <li>
+                        <a href="{% url 'landing' %}">Main Page</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'login' %}">Login</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'register' %}">Register</a>
+                    </li>
+                {% endif %}
+            {% if user.is_staff %}
+                <li>
+                    <a href="/admin">Admin</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <div class="taskbar">
+        <span class="left-corner"></span>
+        <span class="taskbar-filler"></span>
+        <span class="right-corner"></span>
+    </div>
+
+    <div id="content">
+        <div class="box">
+            <!-- Display messages anywhere in the layout -->
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% block content %}
+                <strong>Keoland_original!!</strong>
+            {% endblock %}
+        </div>
+    </div>
+
+    <footer>
+        WebServer Test | AnkiConjoined&copy; - {% now "Y" %}
+    </footer>
+</body>
+</html>

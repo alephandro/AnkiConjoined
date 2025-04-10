@@ -1,6 +1,10 @@
 import json
 import uuid
+import os
+import random
 
+ADDON_DIR = os.path.dirname(__file__)
+RANDOM_WORDS_FILE_PATH = os.path.join(ADDON_DIR, "random_words")
 
 def collect_cards(soc):
     try:
@@ -28,3 +32,9 @@ def collect_cards(soc):
 def generate_stable_uid():
     """Generate a stable unique identifier that won't change even if card content changes."""
     return str(uuid.uuid4())
+
+def generate_random_deck_code():
+    with open(RANDOM_WORDS_FILE_PATH, 'r') as file:
+        words = [word.strip() for word in file if 3 < len(word.strip()) < 11]
+    selected_words = random.sample(words, 5)
+    return "+".join(selected_words)

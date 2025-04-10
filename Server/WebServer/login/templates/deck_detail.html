@@ -1,0 +1,166 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ deck.deck_name }} Details{% endblock %}
+
+{% block content %}
+<div class="deck-detail">
+    <div class="detail-header">
+        <h1 class="title">{{ deck.deck_name }}</h1>
+        <p class="deck-code">Code: {{ deck.deck_code }}</p>
+    </div>
+
+    <div class="detail-card">
+        <div class="card-header">
+            <h2>Description</h2>
+            {% if can_manage %}
+            <button type="button" class="btn-edit" onclick="toggleEditDescription()">
+                <i class="edit-icon">✏️</i> Edit
+            </button>
+            {% endif %}
+        </div>
+
+        <div id="display-description" class="deck-description">
+            <p>{{ deck.deck_desc }}</p>
+        </div>
+
+        {% if can_manage %}
+            <div id="edit-description-form" style="display:none;">
+                <form action="{% url 'update_deck_description' deck.deck_code %}" method="POST">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <textarea name="description" class="form-control" rows="5">{{ deck.deck_desc }}</textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Save</button>
+                        <button type="button" class="btn-secondary" onclick="toggleEditDescription()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="detail-card">
+        <h2>Users</h2>
+
+        {% if can_manage %}
+            <div class="form-card">
+                <h3>Add User</h3>
+                <form action="{% url 'add_deck_user' deck.deck_code %}" method="POST" class="add-user-form">
+                    {% csrf_token %}
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="username">Username:</label>
+                            <input type="text" id="username" name="username" required placeholder="Enter username" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="role">Role:</label>
+                            <select id="role" name="role" class="form-control">
+                                {% for role in roles %}
+                                    {% if role.code == 'c' and user_privilege == 'c' %}
+                                        <option value="{{ role.code }}">{{ role.name }}</option>
+                                    {% elif role.code != 'c' %}
+                                        <option value="{{ role.code }}">{{ role.name }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary">Add User</button>
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+
+        {% if deck_users %}
+            <div class="table-container">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Role</th>
+                            {% if can_manage %}
+                            <th>Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for deck_user in deck_users %}
+                        <tr class="{% cycle 'odd' 'even' %}">
+                            <td>{{ deck_user.user.username }}</td>
+                            <td class="role-cell">
+                                <span class="role-badge role-{{ deck_user.privilege }}">
+                                    {% if deck_user.privilege == 'c' %}
+                                        Creator
+                                    {% elif deck_user.privilege == 'm' %}
+                                        Manager
+                                    {% elif deck_user.privilege == 'w' %}
+                                        Writer
+                                    {% elif deck_user.privilege == 'r' %}
+                                        Reader
+                                    {% else %}
+                                        Unknown
+                                    {% endif %}
+                                </span>
+                            </td>
+                            {% if can_manage and deck_user.user.username != request.user.username %}
+                            <td class="user-actions">
+                                <form action="{% url 'change_user_role' deck.deck_code deck_user.user.username %}" method="POST" class="role-form">
+                                    {% csrf_token %}
+                                    <select name="new_role" class="role-select">
+                                        {% for role in roles %}
+                                        <option value="{{ role.code }}" {% if deck_user.privilege == role.code %}selected{% endif %}>
+                                            {{ role.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn-change-role">Change</button>
+                                </form>
+
+                                <button type="button" class="btn-danger" onclick="confirmRemove('{{ deck_user.user.username }}')">
+                                    Remove
+                                </button>
+                                <form id="remove-form-{{ deck_user.user.username }}" action="{% url 'remove_deck_user' deck.deck_code deck_user.user.username %}" method="POST" style="display:none;">
+                                    {% csrf_token %}
+                                </form>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="no-users-message">No users found for this deck.</p>
+        {% endif %}
+    </div>
+
+    <div class="action-bar">
+        <a href="{% url 'my_decks' %}" class="btn-secondary">Back to My Decks</a>
+
+        {% if user_privilege == 'c' %}
+            <a href="{% url 'delete_deck' deck.deck_code %}" class="btn-danger">Delete Deck</a>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+
+function toggleEditDescription() {
+    const displayDiv = document.getElementById('display-description');
+    const editForm = document.getElementById('edit-description-form');
+
+    if (displayDiv.style.display === 'none') {
+        displayDiv.style.display = 'block';
+        editForm.style.display = 'none';
+    } else {
+        displayDiv.style.display = 'none';
+        editForm.style.display = 'block';
+    }
+}
+
+function confirmRemove(username) {
+    if (confirm('Are you sure you want to remove ' + username + ' from this deck?')) {
+        document.getElementById('remove-form-' + username).submit();
+    }
+}
+</script>
+{% endblock %}

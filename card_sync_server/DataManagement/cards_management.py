@@ -1,6 +1,9 @@
 import json
 import uuid
+import os
 
+ADDON_DIR = os.path.dirname(__file__)
+RANDOM_WORDS_FILE_PATH = os.path.join(ADDON_DIR, "random_words")
 
 def collect_cards(soc):
     try:
@@ -28,3 +31,26 @@ def collect_cards(soc):
 def generate_stable_uid():
     """Generate a stable unique identifier that won't change even if card content changes."""
     return str(uuid.uuid4())
+
+
+def generate_random_deck_code():
+    """Generate a random deck code from words"""
+    try:
+        if os.path.exists(RANDOM_WORDS_FILE_PATH):
+            with open(RANDOM_WORDS_FILE_PATH, 'r') as file:
+                words = [word.strip() for word in file if 3 < len(word.strip()) < 11]
+        else:
+            # Fallback if file doesn't exist
+            words = ["brave", "expert", "garden", "forest", "mountain", "river",
+                     "ocean", "desert", "plain", "valley", "creek", "lake",
+                     "spring", "autumn", "winter", "summer", "morning", "evening",
+                     "night", "dawn", "dusk", "noon", "midnight", "today",
+                     "tomorrow", "yesterday", "moment", "minute", "hour", "day"]
+
+        selected_words = random.sample(words, 5)
+        return "+".join(selected_words)
+    except Exception as e:
+        log_error(f"Error generating random deck code: {str(e)}")
+        # Fallback with a timestamp-based code
+        timestamp = int(time.time())
+        return f"deck+code+{timestamp}"

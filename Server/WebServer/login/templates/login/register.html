@@ -1,0 +1,60 @@
+{% extends 'layout.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h1 class="title">Create Account</h1>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'register' %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+            {{ form.username.label_tag }}
+            {{ form.username }}
+            {% if form.username.errors %}
+                <div class="form-error">{{ form.username.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            {{ form.password1.label_tag }}
+            {{ form.password1 }}
+            {% if form.password1.errors %}
+                <div class="form-error">{{ form.password1.errors }}</div>
+            {% endif %}
+            <small class="help-text">
+                Your password can't be too similar to your username.<br>
+                Your password must contain at least 8 characters.<br>
+                Your password can't be a commonly used password.<br>
+                Your password can't be entirely numeric.
+            </small>
+        </div>
+
+        <div class="form-group">
+            {{ form.password2.label_tag }}
+            {{ form.password2 }}
+            {% if form.password2.errors %}
+                <div class="form-error">{{ form.password2.errors }}</div>
+            {% endif %}
+            <small class="help-text">Enter the same password as before, for verification.</small>
+        </div>
+
+        <button type="submit" class="btn-register">Register</button>
+    </form>
+
+    <div class="auth-links">
+        <p>Already have an account? <a href="{% url 'login' %}">Login</a></p>
+    </div>
+</div>
+{% endblock %}

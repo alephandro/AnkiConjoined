@@ -168,7 +168,7 @@ def workflow_simulation(client, create, receive, deck_name, new, delete):
 if __name__ == "__main__":
     client = Client()
     deck_name = "TestKaishi"
-    action = "delete"
+    action = "receive"
 
     match action:
         case "create":
@@ -179,7 +179,7 @@ if __name__ == "__main__":
             workflow_simulation(client, True, True, deck_name, False, False)
         case "new":
             workflow_simulation(client, False, False,
-                                "brave+initiated+messaging+edition+tune",True, False)
+                                "plastic+recently+arrive+band+downloads",True, False)
         case "delete":
             workflow_simulation(client, False, False, deck_name, False, True)
 

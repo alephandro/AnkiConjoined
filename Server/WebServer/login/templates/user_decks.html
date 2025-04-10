@@ -1,0 +1,38 @@
+{% extends 'layout.html' %}
+
+{% block title %}Decks of the User{% endblock %}
+
+{% block content %}
+<h1 class="title">My Decks</h1>
+
+<ul class="deck-list">
+    {% for deck in decks %}
+        <li class="deck-item">
+            <div class="deck-header">
+                <h4>
+                    <a href="{% url 'deck_detail' deck.deck_code %}">
+                        {{deck.deck_name}}: {{deck.deck_code}}
+                    </a>
+                </h4>
+                <span class="privilege-badge {% if deck.user_privilege == 'c' %}privilege-creator{% elif deck.user_privilege == 'm' %}privilege-manager{% elif deck.user_privilege == 'w' %}privilege-writer{% else %}privilege-reader{% endif %}">
+                    {{ deck.user_privilege|upper }}
+                </span>
+            </div>
+
+            <div class="deck-actions">
+                {% if deck.user_privilege == 'c' %}
+                    <a href="{% url 'delete_deck' deck.deck_code %}" class="btn-danger">Delete Deck</a>
+                {% else %}
+                    <a href="{% url 'delete_deck' deck.deck_code %}" class="btn-warning">Leave Deck</a>
+                {% endif %}
+            </div>
+        </li>
+    {% empty %}
+        <li class="no-decks">You don't have any decks yet.</li>
+    {% endfor %}
+</ul>
+
+<div class="action-bar">
+    <a href="{% url 'deck_creation_form' %}" class="btn-primary">Create New Deck</a>
+</div>
+{% endblock %}
