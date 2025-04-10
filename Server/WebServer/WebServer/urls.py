@@ -21,7 +21,8 @@ from login.api_views import token_auth, verify_token
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', views.index, name='index'),
+    path('', views.landing_page, name='landing'),
+    path('dashboard/', views.index, name='index'),
 
     # Authentication URLs
     path('login/', views.login_view, name='login'),

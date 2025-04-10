@@ -55,20 +55,35 @@ def register_view(request):
 def logout_view(request):
     logout(request)
     messages.info(request, "You have been logged out.")
-    return redirect('login')
+    return redirect('landing')
 
 
 @login_required
 def index(request):
-    decks = retrieve_decks(request.user.username)
-    year = 2025
-    return render(request, 'index.html',
-                  {
-                      'data': decks,
-                      'user': request.user.username,
-                      'years': range(year, 2051),
-                      'firstYear': year
-                  })
+    user_decks = UserDeck.objects.filter(user=request.user).select_related('deck')
+
+    decks = []
+    for user_deck in user_decks:
+        deck_info = {
+            'deck_name': user_deck.deck.deck_name,
+            'deck_code': user_deck.deck.deck_code,
+            'user_privilege': user_deck.privilege,
+        }
+        decks.append(deck_info)
+
+    decks = sorted(decks, key=lambda d: d['deck_name'])
+
+    context = {
+        'decks': decks,
+    }
+
+    return render(request, 'index.html', context)
+
+
+def landing_page(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+    return render(request, 'index.html')
 
 
 def retrieve_decks(user):

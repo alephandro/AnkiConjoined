@@ -1,24 +1,121 @@
 {% extends 'layout.html' %}
 
-{% block title %}Main Page{% endblock %}
+{% block title %}Dashboard{% endblock %}
 
 {% block content %}
-    <h1 class="title">Main Page</h1>
-    {{ block.super }}
+<div class="dashboard">
+    <div class="welcome-section">
+        <h1 class="title">Welcome to Anki Conjoined</h1>
 
-    <p>Listado de mazos del usuario: <strong>{{user}}</strong></p>
-    <ul>
-        {% for deck in data %}
-            <li>{{deck}}</li>
-        {% endfor %}
-    </ul>
+        {% if user.is_authenticated %}
+            <p class="welcome-message">Hello, <strong>{{ user.username }}</strong>! Here's your card synchronization dashboard.</p>
+        {% else %}
+            <p class="welcome-message">A platform for synchronizing your Anki flashcards across multiple devices and with other users.</p>
+            <div class="auth-buttons">
+                <a href="{% url 'login' %}" class="btn-primary">Login</a>
+                <a href="{% url 'register' %}" class="btn-secondary">Register</a>
+            </div>
+        {% endif %}
+    </div>
 
-    <p>Even years till 2050 (from {{firstYear}})</p>
-    <ul>
-        {% for year in years %}
-            {% if year|divisibleby:2 == True %}
-                <li>{{year}}</li>
-            {% endif %}
-        {% endfor %}
-    </ul>
+    {% if user.is_authenticated %}
+        <div class="dashboard-stats">
+            <div class="stat-box">
+                <h3>Your Decks</h3>
+                <div class="stat-number">{{ decks|length }}</div>
+                <a href="{% url 'my_decks' %}" class="stat-link">View All</a>
+            </div>
+
+            <div class="stat-box">
+                <h3>Quick Actions</h3>
+                <div class="quick-actions">
+                    <a href="{% url 'deck_creation_form' %}" class="action-button">Create New Deck</a>
+                    <a href="{% url 'my_decks' %}" class="action-button">Manage Decks</a>
+                </div>
+            </div>
+        </div>
+
+        {% if decks %}
+            <div class="recent-decks">
+                <h2>Your Recent Decks</h2>
+                <ul class="deck-list">
+                    {% for deck in decks|slice:":3" %}
+                        <li class="deck-item">
+                            <div class="deck-header">
+                                <h4>
+                                    <a href="{% url 'deck_detail' deck.deck_code %}">
+                                        {{deck.deck_name}}
+                                    </a>
+                                </h4>
+                                <span class="deck-code">Code: {{deck.deck_code}}</span>
+                                <span class="privilege">Role: {{deck.user_privilege}}</span>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% if decks|length > 3 %}
+                    <div class="more-link">
+                        <a href="{% url 'my_decks' %}">View all decks ({{ decks|length }})</a>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="features-section">
+            <h2>Features</h2>
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <h3>Multi-Device Sync</h3>
+                    <p>Keep your flashcards synchronized across all your devices without requiring AnkiWeb.</p>
+                </div>
+                <div class="feature-item">
+                    <h3>Collaborative Learning</h3>
+                    <p>Share decks with friends and colleagues for collaborative flashcard creation and learning.</p>
+                </div>
+                <div class="feature-item">
+                    <h3>Permission Management</h3>
+                    <p>Control who can view, edit, and manage your shared decks with granular permission settings.</p>
+                </div>
+                <div class="feature-item">
+                    <h3>Simple Sharing</h3>
+                    <p>Share decks easily with a unique code that others can use to access your content.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="getting-started">
+            <h2>Getting Started</h2>
+            <ol class="steps-list">
+                <li>
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <h3>Create an Account</h3>
+                        <p>Sign up to start synchronizing your Anki decks.</p>
+                    </div>
+                </li>
+                <li>
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <h3>Install the Add-on</h3>
+                        <p>Install the Anki Conjoined add-on from the Anki add-on repository.</p>
+                    </div>
+                </li>
+                <li>
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <h3>Create or Import Decks</h3>
+                        <p>Create new decks or import existing ones through the Anki interface.</p>
+                    </div>
+                </li>
+                <li>
+                    <span class="step-number">4</span>
+                    <div class="step-content">
+                        <h3>Sync and Share</h3>
+                        <p>Synchronize your decks with our server and share them with others.</p>
+                    </div>
+                </li>
+            </ol>
+        </div>
+    {% endif %}
+</div>
 {% endblock %}
