@@ -69,6 +69,23 @@ The project consists of three main components:
    python server.py
    ```
 
+   To change the server address and port, modify the Server class initialization in the `server.py` file:
+   
+   ```python
+   # Find this line at the bottom of server.py:
+   if __name__ == "__main__":
+       server = Server()  # Default is localhost:9999
+   
+   # Change it to specify your desired host and port:
+   if __name__ == "__main__":
+       server = Server(host="0.0.0.0", port=8888)  # Example: listen on all interfaces, port 8888
+   ```
+   
+   Common host settings:
+   - `"localhost"` or `"127.0.0.1"`: Only accept connections from the same machine
+   - `"0.0.0.0"`: Accept connections from any network interface (needed for remote access)
+   - Specific IP: Only accept connections from that specific interface
+
 #### Web Server
 
 1. **Set up the Django server**:
@@ -93,6 +110,17 @@ The project consists of three main components:
    python manage.py runserver
    ```
 
+   To change the Django web server address and port:
+   ```bash
+   # Specify the IP address and port
+   python manage.py runserver 0.0.0.0:8000  # Listen on all interfaces, port 8000
+   
+   # Or use a specific IP
+   python manage.py runserver 192.168.1.100:8000  # Listen on specific IP, port 8000
+   ```
+   
+   Note: The Django development server is not recommended for production use. For production, consider using Gunicorn, uWSGI, or another WSGI server with Nginx or Apache.
+
 2. **Access the web interface**:
    - Open your browser and navigate to `http://127.0.0.1:8000/`
    - Log in with the superuser credentials you created
@@ -108,6 +136,11 @@ The project consists of three main components:
      - Socket Server Host (default: 127.0.0.1)
      - Socket Server Port (default: 9999)
      - Web Server URL (default: http://127.0.0.1:8000)
+   - Click "Save" to apply your changes
+   
+   This allows you to connect to a server running on a different machine or port. For example, if your server is running on another computer with IP 192.168.1.100 and you've configured the socket server to run on port 8888, you would enter:
+   - Socket Server Host: 192.168.1.100
+   - Socket Server Port: 8888
 
 2. **Login to your account**:
    - In Anki, click on the "Card Sync" menu
