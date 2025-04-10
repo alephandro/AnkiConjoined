@@ -72,18 +72,47 @@ def log_error(message):
     except:
         pass  # Fallback in case logging itself fails
 
-def anki_connect_request(action, success_callback, error_callback=None, **params):
-    """Make an AnkiConnect request in a background thread"""
+
+def anki_connect_request(action, success_callback, error_callback=None, retry_count=3, retry_delay=1.0, **params):
+    """Make an AnkiConnect request in a background thread with retry on connection errors
+
+    Args:
+        action: The AnkiConnect action to perform
+        success_callback: Callback function to handle successful results
+        error_callback: Callback function to handle errors
+        retry_count: Number of retries left (default 3)
+        retry_delay: Delay between retries in seconds, will increase exponentially
+        **params: Parameters for the AnkiConnect action
+    """
+    # Create a worker to execute the request
     worker = AnkiConnectWorker(action, **params)
-    
-    # Connect signals
+
+    def handle_error(error_msg):
+        if retry_count > 0 and ("Connection error" in error_msg or
+                                "timed out" in error_msg or
+                                "HTTP Error" in error_msg):
+            print(f"Connection to AnkiConnect failed. Retrying in {retry_delay:.1f}s... ({retry_count} attempts left)")
+
+            def retry_request():
+                anki_connect_request(
+                    action,
+                    success_callback,
+                    error_callback,
+                    retry_count - 1,
+                    retry_delay * 1.5,
+                    **params
+                )
+
+            from aqt.qt import QTimer
+            QTimer.singleShot(int(retry_delay * 1000), retry_request)
+        else:
+            log_error(f"{error_msg} (after {3 - retry_count} retries)")
+            if error_callback:
+                error_callback(error_msg)
+
     worker.finished.connect(success_callback)
-    if error_callback:
-        worker.error.connect(error_callback)
-    else:
-        worker.error.connect(lambda msg: log_error(msg))
-    
-    # Start the worker in a background thread
+    worker.error.connect(handle_error)
+
     thread = Thread(target=worker.run)
     thread.daemon = True
     thread.start()
