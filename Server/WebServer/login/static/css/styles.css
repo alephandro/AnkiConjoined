@@ -508,60 +508,135 @@ footer {
    DECK DETAIL STYLES
    ----------------------------- */
 .deck-detail {
-    max-width: 800px;
+    max-width: 900px;
     margin: 0 auto;
+    padding: 20px;
 }
 
-.deck-description {
-    margin-bottom: 2rem;
+.detail-header {
+    margin-bottom: 30px;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 15px;
 }
 
-.deck-description h2 {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-    color: #333;
+.detail-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    padding: 25px;
+    margin-bottom: 30px;
 }
 
-.deck-users h2 {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    color: #333;
+.form-card {
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 25px;
+    border-left: 4px solid #57B9FF;
+}
+
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.table-container {
+    overflow-x: auto;
+    margin-top: 15px;
 }
 
 /* User table styles */
 .users-table {
     width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 2rem;
-}
-
-.users-table th,
-.users-table td {
-    padding: 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 6px;
+    overflow: hidden;
 }
 
 .users-table th {
-    background-color: #f5f5f5;
-    font-weight: bold;
+    background-color: #f0f4f8;
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.users-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.users-table tr.odd {
+    background-color: #fff;
+}
+
+.users-table tr.even {
+    background-color: #f9fafc;
+}
+
+.users-table tr:hover {
+    background-color: #f0f7ff;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.role-c {
+    background-color: #28a745;
+    color: white;
+}
+
+.role-m {
+    background-color: #fd7e14;
+    color: white;
+}
+
+.role-w {
+    background-color: #6f42c1;
+    color: white;
+}
+
+.role-r {
+    background-color: #6c757d;
+    color: white;
 }
 
 .user-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 10px;
+    align-items: center;
+}
+
+.action-bar {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
 }
 
 .role-form {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
 }
 
 .role-select {
-    padding: 0.25rem;
+    padding: 6px 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
+}
+
+.no-users-message {
+    text-align: center;
+    padding: 20px;
+    color: #6c757d;
+    font-style: italic;
 }
 
 /* Add user form */
@@ -594,6 +669,49 @@ footer {
 .add-user-form button {
     height: 38px;
     margin-bottom: 1px;
+}
+
+/* Description editing styles */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.btn-edit {
+    background-color: transparent;
+    border: none;
+    color: #57B9FF;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-edit:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.edit-icon {
+    font-size: 1.2rem;
+}
+
+#edit-description-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 1rem;
+    resize: vertical;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
 }
 
 /* -----------------------------

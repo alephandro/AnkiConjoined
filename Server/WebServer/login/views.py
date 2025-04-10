@@ -437,3 +437,28 @@ def add_deck_user(request, deck_code):
     except UserDeck.DoesNotExist:
         messages.error(request, "Deck not found or you don't have access to it.")
         return redirect('my_decks')
+
+
+@login_required
+def update_deck_description(request, deck_code):
+    if request.method != 'POST':
+        return redirect('deck_detail', deck_code=deck_code)
+
+    try:
+        user_deck = UserDeck.objects.get(user=request.user, deck__deck_code=deck_code)
+        if user_deck.privilege not in ['c', 'm']:
+            messages.error(request, "You don't have permission to edit the description.")
+            return redirect('deck_detail', deck_code=deck_code)
+
+        new_description = request.POST.get('description', '')
+
+        deck = user_deck.deck
+        deck.deck_desc = new_description
+        deck.save()
+
+        messages.success(request, "Deck description updated successfully.")
+        return redirect('deck_detail', deck_code=deck_code)
+
+    except UserDeck.DoesNotExist:
+        messages.error(request, "Deck not found or you don't have access to it.")
+        return redirect('my_decks')

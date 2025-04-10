@@ -37,6 +37,7 @@ urlpatterns = [
     path('decks/create/form/', views.deck_creation_form, name='deck_creation_form'),
     path('decks/save/', views.save_deck_local, name='save_deck'),
     path('decks/delete/<str:deck_code>/', views.delete_deck, name='delete_deck'),
+    path('decks/<str:deck_code>/update-description/', views.update_deck_description, name='update_deck_description'),
 
     # Additional URL patterns to add to urlpatterns list:
     path('decks/<str:deck_code>/detail/', views.deck_detail, name='deck_detail'),
