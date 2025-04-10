@@ -183,6 +183,8 @@ class Server:
         all_cards = {}
 
         for card in new_cards:
+            if not card.get("stable_uid"):
+                card["stable_uid"] = generate_stable_uid()
             all_cards[str(card["stable_uid"])] = card
 
         with open(self.json_file, "w") as outfile:
