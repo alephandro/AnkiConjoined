@@ -207,10 +207,6 @@ The web interface provides additional features:
 - Passwords are stored securely in the Django database
 - For production use, consider setting up HTTPS and proper security measures
 
-## License
-
-This project is shared under [LICENSE INFORMATION].
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -219,4 +215,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 - Anki for the fantastic flashcard platform
 - The Django team for the web framework
-- All contributors and testers of this project
