@@ -57,7 +57,7 @@ class Server:
             username_size = conn.recv(self.HEADER).decode("utf-8")
             username = conn.recv(int(username_size)).decode("utf-8")
             deck_code_size = conn.recv(self.HEADER).decode("utf-8")
-            deck_code = conn.recv(int(deck_code_size)).decode("utf-8")
+            deck_code = conn.recv(int(deck_code_size)).decode("utf-8").strip()
             self.json_file = deck_code + ".json"
 
             match choice:
