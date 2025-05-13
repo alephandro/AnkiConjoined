@@ -2,7 +2,7 @@
 from aqt import mw
 from aqt.qt import *
 from aqt.utils import showInfo, showWarning, tooltip, qconnect
-import os
+import os, platform
 
 # Import plugin functionality
 from .client import Client, workflow_simulation
@@ -13,7 +13,7 @@ from .settings_dialog import SettingsDialog
 # Setup logging
 ADDON_DIR = os.path.dirname(__file__)
 ERROR_LOG_PATH = os.path.join(ADDON_DIR, "error_log.txt")
-
+is_mac = platform.system() == "Darwin"
 
 def log_error(message):
     """Log errors to file for debugging"""
@@ -81,9 +81,73 @@ def setup_menu():
     logout_action = QAction("Logout", mw)
     qconnect(logout_action.triggered, logout_user)
 
-    # Add settings action
-    settings_action = QAction("Settings", mw)
+    settings_action = None
+    if not is_mac:
+        settings_action = QAction("Settings", mw)
+
+    else:
+        settings_action = QAction("Settings", mw)
+
+        def edit_settings():
+            from aqt.utils import showInfo
+            from aqt.qt import QInputDialog, QLineEdit
+
+            settings = QSettings("AnkiConjoined", "CardSync")
+
+            # Get current values with defaults
+            host = settings.value("server_host", "127.0.0.1")
+            port = settings.value("server_port", "9999")
+            web = settings.value("web_url", "http://127.0.0.1:8000")
+
+            # Simple input dialogs work well on Mac
+            new_host, ok1 = QInputDialog.getText(mw, "Server Settings",
+                                                 "Enter Server Host:",
+                                                 QLineEdit.EchoMode.Normal,
+                                                 host)
+            if not ok1:
+                return
+
+            new_port, ok2 = QInputDialog.getText(mw, "Server Settings",
+                                                 "Enter Server Port:",
+                                                 QLineEdit.EchoMode.Normal,
+                                                 port)
+            if not ok2:
+                return
+
+            new_web, ok3 = QInputDialog.getText(mw, "Server Settings",
+                                                "Enter Web URL:",
+                                                QLineEdit.EchoMode.Normal,
+                                                web)
+            if not ok3:
+                return
+
+            # Save settings
+            settings.setValue("server_host", new_host)
+            settings.setValue("server_port", new_port)
+            settings.setValue("web_url", new_web)
+
+            showInfo("Settings updated successfully!")
+
     qconnect(settings_action.triggered, show_settings_dialog)
+
+    config_action = QAction("Manual Config", mw)
+
+    def show_config_info():
+        from aqt.utils import showInfo
+        settings = QSettings("AnkiConjoined", "CardSync")
+        host = settings.value("server_host", "127.0.0.1")
+        port = settings.value("server_port", "9999")
+        web = settings.value("web_url", "http://127.0.0.1:8000")
+
+        info = (f"Current settings:\n\n"
+                f"Server Host: {host}\n"
+                f"Server Port: {port}\n"
+                f"Web URL: {web}\n\n"
+                f"Settings are stored in your Anki user profile.")
+
+        showInfo(info)
+    qconnect(config_action.triggered, show_config_info)
+
 
     # Add actions to the menu
     main_menu.addAction(login_action)
@@ -93,6 +157,7 @@ def setup_menu():
     main_menu.addAction(test_action)
     main_menu.addSeparator()
     main_menu.addAction(settings_action)
+    main_menu.addAction(config_action)
 
     # Add the menu to Anki's menu bar
     mw.form.menubar.addMenu(main_menu)
