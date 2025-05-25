@@ -34,7 +34,21 @@ def generate_stable_uid():
     return str(uuid.uuid4())
 
 def generate_random_deck_code():
-    with open(RANDOM_WORDS_FILE_PATH, 'r') as file:
-        words = [word.strip() for word in file if 3 < len(word.strip()) < 11]
-    selected_words = random.sample(words, 5)
-    return "+".join(selected_words)
+    """Generate a random deck code from words"""
+    try:
+        if os.path.exists(RANDOM_WORDS_FILE_PATH):
+            with open(RANDOM_WORDS_FILE_PATH, 'r') as file:
+                words = [word.strip() for word in file if len(word.strip()) < 13]
+        else:
+            words = ["brave", "expert", "garden", "forest", "mountain", "river",
+                     "ocean", "desert", "plain", "valley", "creek", "lake",
+                     "spring", "autumn", "winter", "summer", "morning", "evening",
+                     "night", "dawn", "dusk", "noon", "midnight", "today",
+                     "tomorrow", "yesterday", "moment", "minute", "hour", "day"]
+
+        selected_words = random.sample(words, 5)
+        return "+".join(selected_words)
+    except Exception as e:
+        log_error(f"Error generating random deck code: {str(e)}")
+        timestamp = int(time.time())
+        return f"deck+code+{timestamp}"
