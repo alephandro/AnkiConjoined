@@ -8,14 +8,12 @@ from threading import Thread
 from aqt.qt import QObject, pyqtSignal
 from aqt import mw
 
-# Get the addon directory for absolute file paths
 ADDON_DIR = os.path.dirname(__file__)
 SYNC_FILE_PATH = os.path.join(ADDON_DIR, "sync_log.json")
 DECKS_CODES_PATH = os.path.join(ADDON_DIR, "decks_codes.json")
 ERROR_LOG_PATH = os.path.join(ADDON_DIR, "error_log.txt")
 ANKI_CONNECT_URL = "http://127.0.0.1:8765"
 
-# Worker class to handle AnkiConnect requests in background threads
 class AnkiConnectWorker(QObject):
     finished = pyqtSignal(object)
     error = pyqtSignal(str)
@@ -25,7 +23,6 @@ class AnkiConnectWorker(QObject):
         self.action = action
         self.params = params
 
-    # In testAnkiConnected.py - Update the AnkiConnectWorker.run method:
 
     def run(self):
         try:
@@ -35,10 +32,8 @@ class AnkiConnectWorker(QObject):
                 "params": self.params
             }
 
-            # Add timeout to prevent hanging
             response = requests.post(ANKI_CONNECT_URL, json=request_json, timeout=5)
 
-            # Handle HTTP errors
             if response.status_code != 200:
                 self.error.emit(f"HTTP Error: {response.status_code}")
                 return
@@ -70,7 +65,7 @@ def log_error(message):
             f.write(traceback.format_exc())
             f.write("\n---\n")
     except:
-        pass  # Fallback in case logging itself fails
+        pass 
 
 
 def anki_connect_request(action, success_callback, error_callback=None, retry_count=3, retry_delay=1.0, **params):
@@ -84,7 +79,6 @@ def anki_connect_request(action, success_callback, error_callback=None, retry_co
         retry_delay: Delay between retries in seconds, will increase exponentially
         **params: Parameters for the AnkiConnect action
     """
-    # Create a worker to execute the request
     worker = AnkiConnectWorker(action, **params)
 
     def handle_error(error_msg):
@@ -117,7 +111,6 @@ def anki_connect_request(action, success_callback, error_callback=None, retry_co
     thread.daemon = True
     thread.start()
 
-# File operation utilities with error handling
 def read_json_file(file_path, default=None):
     """Read a JSON file with error handling"""
     if default is None:
@@ -339,8 +332,6 @@ def sync_card(card_data, final_callback=None):
     find_card_with_tag(uid_tag, on_tag_search_complete)
 
 
-# In testAnkiConnected.py - Update the list_decks function:
-
 def list_decks(callback, error_callback=None):
     """Fetches all deck names from Anki via AnkiConnect (async)"""
 
@@ -351,9 +342,7 @@ def list_decks(callback, error_callback=None):
             if error_callback:
                 error_callback("No result in response")
             else:
-                # Fallback to provide at least some decks
-                try:
-                    # Get decks directly from Anki's collection
+                try:       
                     deck_names = [d['name'] for d in mw.col.decks.all()]
                     callback(deck_names)
                 except:
@@ -364,9 +353,7 @@ def list_decks(callback, error_callback=None):
         if error_callback:
             error_callback(error_msg)
         else:
-            # Fallback to provide at least some decks
             try:
-                # Get decks directly from Anki's collection
                 deck_names = [d['name'] for d in mw.col.decks.all()]
                 callback(deck_names)
             except:
@@ -439,7 +426,7 @@ def generate_random_card(deck_name):
 
     return {
         "note_id": random_id,
-        "stable_uid": str(random.uuid4()),  # Generate a proper stable_uid
+        "stable_uid": str(random.uuid4()), 
         "deck_name": deck_name,
         "model_name": "Basic",
         "fields": {
@@ -496,7 +483,6 @@ def generate_random_deck_code():
             with open(random_words_path, 'r') as file:
                 words = [word.strip() for word in file if 3 < len(word.strip()) < 11]
         else:
-            # Fallback if file doesn't exist
             words = ["brave", "expert", "garden", "forest", "mountain", "river", 
                      "ocean", "desert", "plain", "valley", "creek", "lake", 
                      "spring", "autumn", "winter", "summer", "morning", "evening",
@@ -507,7 +493,6 @@ def generate_random_deck_code():
         return "+".join(selected_words)
     except Exception as e:
         log_error(f"Error generating random deck code: {str(e)}")
-        # Fallback with a timestamp-based code
         timestamp = int(time.time())
         return f"deck+code+{timestamp}"
 
@@ -520,7 +505,6 @@ def get_code_from_deck(deck_name):
     return deck_code
 
 
-# Update this function in testAnkiConnected.py
 def check_for_deck_in_json(deck_code, callback=None):
     """Check if a deck code exists in the config"""
     try:
@@ -532,11 +516,9 @@ def check_for_deck_in_json(deck_code, callback=None):
                 result = True
                 break
 
-        # If a callback was provided, call it with the result
         if callback:
             callback(result)
 
-        # Also return the result for backward compatibility
         return result
     except Exception as e:
         log_error(f"Error checking deck code: {str(e)}")
@@ -544,45 +526,36 @@ def check_for_deck_in_json(deck_code, callback=None):
             callback(False)
         return False
 
-# Initialize the config files if they don't exist
+
 def ensure_config_files():
     """Make sure config files exist with valid JSON content"""
 
-    # Create empty dictionaries as default content
     default_content = {}
 
-    # Check sync file
     if not os.path.exists(SYNC_FILE_PATH):
         with open(SYNC_FILE_PATH, "w") as f:
             json.dump(default_content, f, indent=4)
     else:
-        # Test if the file can be read as JSON
         try:
             with open(SYNC_FILE_PATH, "r") as f:
                 json.load(f)
         except json.JSONDecodeError:
-            # If invalid JSON, overwrite with valid empty JSON
             with open(SYNC_FILE_PATH, "w") as f:
                 json.dump(default_content, f, indent=4)
 
-    # Check decks codes file
     if not os.path.exists(DECKS_CODES_PATH):
         with open(DECKS_CODES_PATH, "w") as f:
             json.dump(default_content, f, indent=4)
     else:
-        # Test if the file can be read as JSON
         try:
             with open(DECKS_CODES_PATH, "r") as f:
                 json.load(f)
         except json.JSONDecodeError:
-            # If invalid JSON, overwrite with valid empty JSON
             with open(DECKS_CODES_PATH, "w") as f:
                 json.dump(default_content, f, indent=4)
 
-# Call this at module load time
 ensure_config_files()
 
-# Example usage if run directly
 if __name__ == "__main__":
     def on_cards_retrieved(cards):
         print_cards_simple(cards)
@@ -592,6 +565,3 @@ if __name__ == "__main__":
     
     deck_name = 'TestDeck'
     on_deck_code(deck_name)
-    
-    # The following would be called from a menu item or action
-    # get_cards_from_deck(deck_name, on_cards_retrieved)
