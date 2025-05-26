@@ -14,8 +14,6 @@ class AuthManager:
         self.auth_file = os.path.join(addon_dir, "auth_data.json")
         self.settings = QSettings("AnkiConjoined", "CardSync")
         self.server_url = self.settings.value("web_url", "http://127.0.0.1:8000")
-
-        # Load existing auth data if available
         self.auth_data = self._load_auth_data()
 
     def _load_auth_data(self):
@@ -31,7 +29,6 @@ class AuthManager:
     def _save_auth_data(self, auth_data):
         """Save authentication data to file"""
         try:
-            # Create directory if it doesn't exist
             os.makedirs(os.path.dirname(self.auth_file), exist_ok=True)
 
             with open(self.auth_file, 'w') as f:
@@ -47,7 +44,6 @@ class AuthManager:
             return False
 
         try:
-            # Verify token with server
             response = requests.post(
                 f"{self.server_url}/api/verify-token/",
                 json={"token": self.auth_data["token"]},
@@ -57,7 +53,6 @@ class AuthManager:
             if response.status_code == 200 and response.json().get("valid"):
                 return True
 
-            # If token is invalid, clear auth data
             self._clear_auth_data()
             return False
         except requests.RequestException as e:

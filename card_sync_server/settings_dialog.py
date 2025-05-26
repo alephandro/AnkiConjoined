@@ -14,35 +14,28 @@ class SettingsDialog(QDialog):
         self.setMinimumWidth(400)
         self.settings = QSettings("AnkiConjoined", "CardSync")
 
-        # Create layout
         layout = QVBoxLayout()
 
-        # Create server settings group
         server_group = QGroupBox("Server Settings")
         server_layout = QFormLayout()
 
-        # Load current settings with defaults
         server_host = self.settings.value("server_host", "127.0.0.1")
         server_port = self.settings.value("server_port", "9999")
         web_url = self.settings.value("web_url", "http://127.0.0.1:8000")
 
-        # Host input
         self.host_input = QLineEdit(server_host)
         server_layout.addRow("Socket Server Host:", self.host_input)
 
-        # Port input
         self.port_input = QLineEdit(server_port)
         self.port_input.setValidator(QIntValidator(1, 65535))
         server_layout.addRow("Socket Server Port:", self.port_input)
 
-        # Web URL input
         self.web_url_input = QLineEdit(web_url)
         server_layout.addRow("Web Server URL:", self.web_url_input)
 
         server_group.setLayout(server_layout)
         layout.addWidget(server_group)
 
-        # Create buttons
         button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save |
             QDialogButtonBox.StandardButton.Cancel

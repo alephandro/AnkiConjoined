@@ -7,7 +7,6 @@ from aqt import mw
 from aqt.qt import QObject, pyqtSignal, QSettings, QMessageBox
 from aqt.utils import showWarning
 
-# Import local modules
 from .auth_manager import AuthManager
 from .login_dialog import LoginDialog
 from .testAnkiConnected import (
@@ -16,9 +15,7 @@ from .testAnkiConnected import (
     get_code_from_deck, create_deck, check_for_deck_in_json,
     delete_deck_information, list_decks, log_error
 )
-from .DataManagement.cards_management import collect_cards
 
-# Setup paths
 ADDON_DIR = os.path.dirname(os.path.abspath(__file__))
 SYNC_FILE_PATH = os.path.join(ADDON_DIR, "sync_log.json")
 DECKS_CODES_PATH = os.path.join(ADDON_DIR, "decks_codes.json")
@@ -27,28 +24,23 @@ DECKS_CODES_PATH = os.path.join(ADDON_DIR, "decks_codes.json")
 class Client(QObject):
     HEADER = 64
 
-    # Define signals for async operations
     operation_complete = pyqtSignal(bool, str)
 
     def __init__(self):
         super().__init__()
-        # Load settings
         self.settings = QSettings("AnkiConjoined", "CardSync")
         self.server_host = self.settings.value("server_host", "127.0.0.1")
         self.server_port = int(self.settings.value("server_port", 9999))
 
-        # Initialize auth manager
         self.auth_manager = AuthManager(ADDON_DIR)
         self.sock = None
 
     def ensure_authenticated(self, parent=None):
         """Make sure user is authenticated before performing operations"""
-        # First check if we already have valid credentials
         if self.auth_manager.is_authenticated():
             print("User is already authenticated")
             return True
 
-        # Not authenticated, show login dialog
         print("User needs to authenticate")
         return LoginDialog.get_credentials(parent)
 
@@ -84,26 +76,20 @@ class Client(QObject):
                         callback(False, "Failed to connect to server")
                     return
 
-                # Send operation type (0 = send cards)
                 self.sock.sendall(str(0).encode("utf-8"))
 
-                # Send authenticated username
                 username = self.auth_manager.get_username()
                 self.send_size_and_package(username)
 
-                # Send deck code
                 deck_code = get_code_from_deck(deck_name)
                 self.send_size_and_package(deck_code)
 
-                # Send deck name
                 self.send_size_and_package(deck_name)
 
-                # Send card data
                 json_data = json.dumps(cards)
                 self.sock.sendall(json_data.encode("utf-8"))
                 self.sock.shutdown(socket.SHUT_WR)
 
-                # Get response
                 response = self.sock.recv(1).decode("utf-8")
                 if response == "1":
                     print("Cards sent and stored successfully.")
@@ -143,29 +129,23 @@ class Client(QObject):
                     callback(False, "Failed to connect to server")
                 return
 
-            # Send operation type (1 = receive cards)
             self.sock.sendall(str(1).encode("utf-8"))
 
-            # Send authenticated username
             username = self.auth_manager.get_username()
             self.send_size_and_package(username)
 
-            # Send deck code
             deck_code = get_code_from_deck(deck_name)
             self.send_size_and_package(deck_code)
 
-            # Send timestamp of last sync
             timestamp = get_value_from_json(SYNC_FILE_PATH, deck_name)
             self.send_size_and_package(timestamp)
 
-            # Get response - check if server allows access
             response = self.sock.recv(1).decode("utf-8")
             if response != "1":
                 if callback:
                     callback(False, "Access denied or server error")
                 return
 
-            # Receive card data
             cards = collect_cards(self.sock)
             if not cards:
                 if callback:
@@ -223,24 +203,19 @@ class Client(QObject):
                         callback(False, "Failed to connect to server")
                     return
 
-                # Send operation type (2 = get deck by code)
                 self.sock.sendall(str(2).encode("utf-8"))
 
-                # Send authenticated username
                 username = self.auth_manager.get_username()
                 self.send_size_and_package(username)
 
-                # Send deck code
                 self.send_size_and_package(deck_code)
 
-                # Get response - check if server allows access
                 response = self.sock.recv(1).decode("utf-8")
                 if response != "1":
                     if callback:
                         callback(False, "Access denied or server error")
                     return
 
-                # Receive the name of the deck
                 deck_name_size = self.sock.recv(self.HEADER).decode("utf-8")
                 deck_name = self.sock.recv(int(deck_name_size)).decode("utf-8")
 
@@ -270,7 +245,6 @@ class Client(QObject):
                         sync_count += 1
 
                         if sync_count >= total_cards:
-                            # Update config files and sync with AnkiWeb
                             update_json(DECKS_CODES_PATH, deck_name, deck_code)
                             update_json(SYNC_FILE_PATH, deck_name, int(time.time()))
 
@@ -324,14 +298,11 @@ class Client(QObject):
 def workflow_simulation(client, create, receive, deck_name, new, delete, final_callback=None):
     """Run a workflow of operations with proper callbacks"""
 
-    # Check authentication first
     if not client.ensure_authenticated(mw):
         if final_callback:
             final_callback(False, "Authentication required")
         return
 
-    # THIS IS THE FIX FOR RECURSION ISSUES
-    # We'll use a class to track state instead of recursion
     class WorkflowState:
         def __init__(self):
             self.result_messages = []
@@ -343,11 +314,8 @@ def workflow_simulation(client, create, receive, deck_name, new, delete, final_c
 
         def on_operation_complete(self, success, message):
             self.result_messages.append(message)
-
-            # IMPORTANT: Only proceed to next operation if we're still within bounds
             self.current_op += 1
             if self.current_op < len(self.operations):
-                # Execute next operation
                 try:
                     self.operations[self.current_op](self.on_operation_complete)
                 except Exception as e:
@@ -355,16 +323,13 @@ def workflow_simulation(client, create, receive, deck_name, new, delete, final_c
                     log_error(error_msg)
                     self.result_messages.append(error_msg)
 
-                    # Skip to final callback with error
                     if final_callback:
                         final_callback(False, "\n".join(self.result_messages))
             elif final_callback:
                 final_callback(True, "\n".join(self.result_messages))
 
-    # Initialize workflow state
     workflow = WorkflowState()
 
-    # Define operations based on parameters
     if new:
         workflow.add_operation(lambda callback: client.receive_deck_from_code(deck_name, callback))
     else:
@@ -373,7 +338,6 @@ def workflow_simulation(client, create, receive, deck_name, new, delete, final_c
         if create:
             workflow.add_operation(lambda callback: client.send_cards(deck_name, callback))
 
-        # Update sync timestamp
         workflow.add_operation(lambda callback:
                                callback(update_json(SYNC_FILE_PATH, deck_name, int(time.time())),
                                         "Updated sync timestamp"))
@@ -382,11 +346,9 @@ def workflow_simulation(client, create, receive, deck_name, new, delete, final_c
             workflow.add_operation(lambda callback: delete_deck_information(deck_name,
                                                                             lambda result: callback(True,
                                                                                                     "Deleted deck information")))
-        # Final AnkiWeb sync
         workflow.add_operation(lambda callback: sync_anki(
             lambda success: callback(success, "AnkiWeb sync complete")))
 
-    # Start the workflow if we have operations
     if workflow.operations:
         try:
             workflow.operations[0](workflow.on_operation_complete)
@@ -397,3 +359,26 @@ def workflow_simulation(client, create, receive, deck_name, new, delete, final_c
                 final_callback(False, error_msg)
     elif final_callback:
         final_callback(True, "No operations to perform")
+
+
+def collect_cards(soc):
+    try:
+        data_chunks = []
+        while True:
+            chunk = soc.recv(4096)
+            if not chunk:
+                break
+            data_chunks.append(chunk)
+
+        if not data_chunks:
+            print("No data received")
+            return
+
+        decoded_data = b''.join(data_chunks).decode("utf-8")
+        cards = json.loads(decoded_data)
+        print(f"Received {len(cards)} cards")
+
+        return cards
+
+    except Exception as e:
+        print(f"Error: {e}")

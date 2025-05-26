@@ -419,46 +419,6 @@ def delete_deck_information(deck_name, callback=None):
     
     delete_deck(deck_name, on_deck_deleted)
 
-def generate_random_card(deck_name):
-    """Generates a random test card matching the stored JSON format."""
-    timestamp = int(time.time())
-    random_id = random.randint(10 ** 12, 10 ** 13 - 1)
-
-    return {
-        "note_id": random_id,
-        "stable_uid": str(random.uuid4()), 
-        "deck_name": deck_name,
-        "model_name": "Basic",
-        "fields": {
-            "Front": f"Test Question {random.randint(1, 100)}",
-            "Back": f"Test Answer {random.randint(1, 100)}"
-        },
-        "tags": "test",
-        "created_at": random_id,
-        "last_modified": timestamp,
-        "interval": 1
-    }
-
-def print_cards_simple(card_list):
-    if not card_list:
-        print("No cards found.")
-        return
-
-    print(f"Found {len(card_list)} cards:")
-    print("-" * 80)
-
-    for i, card in enumerate(card_list, 1):
-        print(f"Card #{i}")
-        print(f"Note ID: {card['note_id']}")
-        print(f"Deck: {card['deck_name']}")
-        print(f"Model: {card['model_name']}")
-
-        for field_name, field_value in card["fields"].items():
-            print(f"{field_name}: {field_value}")
-
-        print(f"Tags: {card['tags']}")
-        print(f"Last modified: {card['last_modified']}")
-        print("-" * 80)
 
 def sync_anki(callback=None):
     """Triggers a sync with AnkiWeb using AnkiConnect (async)"""
@@ -555,13 +515,3 @@ def ensure_config_files():
                 json.dump(default_content, f, indent=4)
 
 ensure_config_files()
-
-if __name__ == "__main__":
-    def on_cards_retrieved(cards):
-        print_cards_simple(cards)
-    
-    def on_deck_code(deck_name):
-        print(f"Deck code for '{deck_name}': {get_code_from_deck(deck_name)}")
-    
-    deck_name = 'TestDeck'
-    on_deck_code(deck_name)
