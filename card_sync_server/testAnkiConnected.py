@@ -285,35 +285,57 @@ def sync_card(card_data, final_callback=None):
     """Syncs a single card (insert/update) using AnkiConnect (async)"""
     tags = card_data["tags"].split() if isinstance(card_data["tags"], str) else card_data["tags"]
     tags = [tag for tag in tags if not tag.startswith("sync_uid:")]
-    
+
     uid_tag = f"sync_uid:{card_data['stable_uid']}"
     tags.append(uid_tag)
-    
+
+    def check_timestamp_and_update(note_id):
+        """Check if incoming card is newer than existing card before updating"""
+        def on_note_info_received(result):
+            if "result" not in result or not result["result"] or len(result["result"]) == 0:
+                card_data["note_id"] = note_id
+                update_card(card_data, tags, on_update_complete)
+                return
+
+            existing_note = result["result"][0]
+            existing_timestamp = existing_note.get("mod", 0)
+            incoming_timestamp = card_data.get("last_modified", 0)
+
+            if incoming_timestamp > existing_timestamp:
+                card_data["note_id"] = note_id
+                update_card(card_data, tags, on_update_complete)
+            else:
+                if final_callback:
+                    final_callback({"result": "skipped_older_card"})
+
+        def on_note_info_error(error_msg):
+            log_error(f"Error getting note info for timestamp comparison: {error_msg}")
+
+        anki_connect_request("notesInfo", on_note_info_received, on_note_info_error, notes=[note_id])
+
     def on_tag_search_complete(note_with_tag):
         if note_with_tag:
-            card_data["note_id"] = note_with_tag[0]
-            update_card(card_data, tags, on_update_complete)
+            check_timestamp_and_update(note_with_tag[0])
         else:
             find_card_with_matching_fields(card_data, on_field_search_complete)
-    
+
     def on_field_search_complete(matching_note):
         if matching_note:
-            card_data["note_id"] = matching_note[0]
-            update_card(card_data, tags, on_update_complete)
+            check_timestamp_and_update(matching_note[0])
         else:
             create_new_card(card_data, tags, on_create_complete)
-    
+
     def on_update_complete(result):
         update_tags(card_data, tags, on_tags_updated)
-    
+
     def on_tags_updated(result):
         if final_callback:
             final_callback(result)
-    
+
     def on_create_complete(result):
         if final_callback:
             final_callback(result)
-    
+
     find_card_with_tag(uid_tag, on_tag_search_complete)
 
 
