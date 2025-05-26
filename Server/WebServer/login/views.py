@@ -4,7 +4,6 @@ from django.contrib.auth import authenticate, login as auth_login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import render, redirect
-from django.http import HttpResponse
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
 sys.path.append(project_root)
@@ -155,7 +154,6 @@ def deck_creation_form(request):
 def user_decks(request):
     user_decks = UserDeck.objects.filter(user=request.user)
 
-    # Create a list of decks with additional user privilege information
     decks_with_privileges = []
     for user_deck in user_decks:
         deck_info = {
@@ -273,14 +271,11 @@ def delete_deck(request, deck_code):
 @login_required
 def deck_detail(request, deck_code):
     try:
-        # Check if the user has access to this deck
         user_deck = UserDeck.objects.get(user=request.user, deck__deck_code=deck_code)
         deck = user_deck.deck
 
-        # Get all users of this deck
         deck_users = UserDeck.objects.filter(deck=deck).select_related('user')
 
-        # Check if current user has management privileges
         can_manage = user_deck.privilege in ['c', 'm']
 
         context = {
@@ -309,29 +304,24 @@ def change_user_role(request, deck_code, username):
         return redirect('deck_detail', deck_code=deck_code)
 
     try:
-        # Check if the current user has management privileges
         user_deck = UserDeck.objects.get(user=request.user, deck__deck_code=deck_code)
         if user_deck.privilege not in ['c', 'm']:
             messages.error(request, "You don't have permission to change user roles.")
             return redirect('deck_detail', deck_code=deck_code)
 
-        # Get the target user's deck relationship
         from django.contrib.auth.models import User
         target_user = User.objects.get(username=username)
         target_user_deck = UserDeck.objects.get(user=target_user, deck__deck_code=deck_code)
 
-        # Cannot change role of the creator if you're not the creator
         if target_user_deck.privilege == 'c' and user_deck.privilege != 'c':
             messages.error(request, "Only the creator can change another creator's role.")
             return redirect('deck_detail', deck_code=deck_code)
 
-        # Get the new role
         new_role = request.POST.get('new_role')
         if new_role not in ['c', 'm', 'w', 'r']:
             messages.error(request, "Invalid role specified.")
             return redirect('deck_detail', deck_code=deck_code)
 
-        # Apply the change
         target_user_deck.privilege = new_role
         target_user_deck.save()
 
@@ -352,23 +342,19 @@ def remove_deck_user(request, deck_code, username):
         return redirect('deck_detail', deck_code=deck_code)
 
     try:
-        # Check if the current user has management privileges
         user_deck = UserDeck.objects.get(user=request.user, deck__deck_code=deck_code)
         if user_deck.privilege not in ['c', 'm']:
             messages.error(request, "You don't have permission to remove users.")
             return redirect('deck_detail', deck_code=deck_code)
 
-        # Get the target user's deck relationship
         from django.contrib.auth.models import User
         target_user = User.objects.get(username=username)
         target_user_deck = UserDeck.objects.get(user=target_user, deck__deck_code=deck_code)
 
-        # Cannot remove the creator if you're not the creator
         if target_user_deck.privilege == 'c' and user_deck.privilege != 'c':
             messages.error(request, "Only the creator can remove another creator.")
             return redirect('deck_detail', deck_code=deck_code)
 
-        # Remove the user
         target_user_deck.delete()
 
         messages.success(request, f"User {username} has been removed from the deck.")
@@ -388,27 +374,22 @@ def add_deck_user(request, deck_code):
         return redirect('deck_detail', deck_code=deck_code)
 
     try:
-        # Check if the current user has management privileges
         user_deck = UserDeck.objects.get(user=request.user, deck__deck_code=deck_code)
         if user_deck.privilege not in ['c', 'm']:
             messages.error(request, "You don't have permission to add users.")
             return redirect('deck_detail', deck_code=deck_code)
 
-        # Get the username and role from the form
         username = request.POST.get('username')
         role = request.POST.get('role')
 
-        # Validate the role
         if role not in ['c', 'm', 'w', 'r']:
             messages.error(request, "Invalid role specified.")
             return redirect('deck_detail', deck_code=deck_code)
 
-        # Only creators can add other creators
         if role == 'c' and user_deck.privilege != 'c':
             messages.error(request, "Only creators can add other creators.")
             return redirect('deck_detail', deck_code=deck_code)
 
-        # Find the user to add
         from django.contrib.auth.models import User
         try:
             user_to_add = User.objects.get(username=username)
@@ -416,13 +397,11 @@ def add_deck_user(request, deck_code):
             messages.error(request, f"User '{username}' not found.")
             return redirect('deck_detail', deck_code=deck_code)
 
-        # Check if user is already in the deck
         existing_user_deck = UserDeck.objects.filter(user=user_to_add, deck__deck_code=deck_code).first()
         if existing_user_deck:
             messages.warning(request, f"User '{username}' is already part of this deck.")
             return redirect('deck_detail', deck_code=deck_code)
 
-        # Add the user to the deck with the specified role
         deck = user_deck.deck
         new_user_deck = UserDeck(
             user=user_to_add,
