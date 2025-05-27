@@ -2,7 +2,6 @@ import socket
 import json
 import time
 import os
-import sys
 from aqt import mw
 from aqt.qt import QObject, pyqtSignal, QSettings, QMessageBox
 from aqt.utils import showWarning

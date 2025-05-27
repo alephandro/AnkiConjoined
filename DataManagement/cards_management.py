@@ -49,6 +49,4 @@ def generate_random_deck_code():
         selected_words = random.sample(words, 5)
         return "+".join(selected_words)
     except Exception as e:
-        log_error(f"Error generating random deck code: {str(e)}")
-        timestamp = int(time.time())
-        return f"deck+code+{timestamp}"
+        print(f"Error generating random deck code: {str(e)}")
