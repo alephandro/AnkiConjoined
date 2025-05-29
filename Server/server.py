@@ -166,16 +166,18 @@ class Server:
         new_count = 0
 
         for card in new_cards:
-            if not card.get("stable_uid"):
+            stable_uid = str(card.get("stable_uid", ""))
+
+            if not stable_uid:
                 card["stable_uid"] = generate_stable_uid()
-                all_cards[card["stable_uid"]] = card
-                new_count += 1
-            elif str(card["stable_uid"]) in all_cards:
-                if card.get("last_modified", 0) > all_cards[str(card["stable_uid"])].get("last_modified", 0):
-                    all_cards[str(card["stable_uid"])] = card
+                stable_uid = card["stable_uid"]
+
+            if stable_uid in all_cards:
+                if card.get("last_modified", 0) > all_cards[stable_uid].get("last_modified", 0):
+                    all_cards[stable_uid] = card
                     updated_count += 1
             else:
-                all_cards[str(card["stable_uid"])] = card
+                all_cards[stable_uid] = card
                 new_count += 1
 
         with open(self.json_file, "w") as outfile:
@@ -187,9 +189,13 @@ class Server:
         all_cards = {}
 
         for card in new_cards:
-            if not card.get("stable_uid"):
+            stable_uid = str(card.get("stable_uid", ""))
+
+            if not stable_uid:
                 card["stable_uid"] = generate_stable_uid()
-            all_cards[str(card["stable_uid"])] = card
+                stable_uid = card["stable_uid"]
+
+            all_cards[stable_uid] = card
 
         with open(self.json_file, "w") as outfile:
             json.dump(all_cards, outfile, indent=4)

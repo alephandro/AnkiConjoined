@@ -12,7 +12,8 @@ from .testAnkiConnected import (
     get_cards_from_deck, sync_card, update_json,
     get_value_from_json, sync_anki, check_for_deck_existence,
     get_code_from_deck, create_deck, check_for_deck_in_json,
-    delete_deck_information, list_decks, log_error
+    delete_deck_information, list_decks, log_error,
+    anki_connect_request
 )
 
 ADDON_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -57,7 +58,6 @@ class Client(QObject):
             return False
 
     def send_cards(self, deck_name, callback=None):
-        """Send cards to server (async)"""
         if not self.ensure_authenticated(mw):
             if callback:
                 callback(False, "Authentication required")
@@ -69,48 +69,131 @@ class Client(QObject):
                     callback(False, "No cards to send or failed to fetch cards")
                 return
 
-            try:
-                if not self.connect_to_server():
+            def send_to_server():
+                try:
+                    from aqt.utils import tooltip
+                    tooltip("Sending cards to server...", period=2000)
+
+                    if not self.connect_to_server():
+                        if callback:
+                            callback(False, "Failed to connect to server")
+                        return
+
+                    self.sock.sendall(str(0).encode("utf-8"))
+
+                    username = self.auth_manager.get_username()
+                    self.send_size_and_package(username)
+
+                    deck_code = get_code_from_deck(deck_name)
+                    self.send_size_and_package(deck_code)
+
+                    self.send_size_and_package(deck_name)
+
+                    json_data = json.dumps(cards)
+                    self.sock.sendall(json_data.encode("utf-8"))
+                    self.sock.shutdown(socket.SHUT_WR)
+
+                    response = self.sock.recv(1).decode("utf-8")
+                    if response == "1":
+                        print("Cards sent and stored successfully.")
+                        tooltip("✅ Cards sent successfully!", period=3000)
+                        if callback:
+                            callback(True, "Cards sent successfully")
+                    else:
+                        print(f"Error: Server returned '{response}'")
+                        if callback:
+                            callback(False, f"Server error: {response}")
+
+                except Exception as e:
+                    error_msg = f"Error sending cards: {str(e)}"
+                    log_error(error_msg)
                     if callback:
-                        callback(False, "Failed to connect to server")
-                    return
+                        callback(False, error_msg)
+                finally:
+                    if self.sock:
+                        try:
+                            self.sock.close()
+                        except:
+                            pass
+                    self.sock = None
 
-                self.sock.sendall(str(0).encode("utf-8"))
+            cards_needing_uid = []
 
-                username = self.auth_manager.get_username()
-                self.send_size_and_package(username)
+            for card in cards:
+                if not card.get("stable_uid"):
+                    import uuid
+                    new_uid = str(uuid.uuid4())
+                    card["stable_uid"] = new_uid
+                    cards_needing_uid.append((card["note_id"], new_uid))
 
-                deck_code = get_code_from_deck(deck_name)
-                self.send_size_and_package(deck_code)
+            if cards_needing_uid:
+                from aqt.utils import tooltip
 
-                self.send_size_and_package(deck_name)
+                print(f"Adding tags to {len(cards_needing_uid)} cards...")
+                tooltip(f"🏷️ Adding tags to {len(cards_needing_uid)} cards...", period=3000)
 
-                json_data = json.dumps(cards)
-                self.sock.sendall(json_data.encode("utf-8"))
-                self.sock.shutdown(socket.SHUT_WR)
+                tags_updated = 0
+                total_to_update = len(cards_needing_uid)
+                batch_size = 10
+                current_batch = 0
+                total_batches = (total_to_update + batch_size - 1) // batch_size
 
-                response = self.sock.recv(1).decode("utf-8")
-                if response == "1":
-                    print("Cards sent and stored successfully.")
-                    if callback:
-                        callback(True, "Cards sent successfully")
-                else:
-                    print(f"Error: Server returned '{response}'")
-                    if callback:
-                        callback(False, f"Server error: {response}")
+                def process_next_batch():
+                    nonlocal current_batch
 
-            except Exception as e:
-                error_msg = f"Error sending cards: {str(e)}"
-                log_error(error_msg)
-                if callback:
-                    callback(False, error_msg)
-            finally:
-                if self.sock:
-                    try:
-                        self.sock.close()
-                    except:
-                        pass
-                self.sock = None
+                    start_idx = current_batch * batch_size
+                    end_idx = min((current_batch + 1) * batch_size, total_to_update)
+
+                    if start_idx >= total_to_update:
+                        send_to_server()
+                        return
+
+                    batch = cards_needing_uid[start_idx:end_idx]
+                    progress_msg = f"📦 Processing batch {current_batch + 1}/{total_batches} ({start_idx + 1}-{end_idx} of {total_to_update})"
+                    print(progress_msg)
+                    tooltip(progress_msg, period=2000)
+
+                    batch_completed = 0
+
+                    def on_tag_updated(result):
+                        nonlocal batch_completed, tags_updated, current_batch
+                        batch_completed += 1
+                        tags_updated += 1
+
+                        if batch_completed >= len(batch):
+                            current_batch += 1
+                            remaining_batches = total_batches - current_batch
+
+                            if remaining_batches > 0:
+                                tooltip(f"⏳ {remaining_batches} batches remaining...", period=1500)
+
+                            from aqt.qt import QTimer
+                            QTimer.singleShot(100, process_next_batch)
+
+                    def on_tag_error(error_msg):
+                        nonlocal batch_completed, tags_updated, current_batch
+                        print(f"Error adding tag: {error_msg}")
+                        batch_completed += 1
+                        tags_updated += 1
+
+                        if batch_completed >= len(batch):
+                            current_batch += 1
+                            remaining_batches = total_batches - current_batch
+
+                            if remaining_batches > 0:
+                                tooltip(f"⏳ {remaining_batches} batches remaining...", period=1500)
+
+                            from aqt.qt import QTimer
+                            QTimer.singleShot(100, process_next_batch)
+
+                    for note_id, uid in batch:
+                        tag = f"sync_uid:{uid}"
+                        anki_connect_request("addTags", on_tag_updated, on_tag_error,
+                                             notes=[note_id], tags=tag)
+
+                process_next_batch()
+            else:
+                send_to_server()
 
         print("Fetching cards...")
         get_cards_from_deck(deck_name, on_cards_fetched)
@@ -123,10 +206,16 @@ class Client(QObject):
             return
 
         try:
+            from aqt.utils import tooltip
+            tooltip("📥 Connecting to server...", period=2000)
+
             if not self.connect_to_server():
+                tooltip("❌ Failed to connect", period=3000)
                 if callback:
                     callback(False, "Failed to connect to server")
                 return
+
+            tooltip("🔄 Requesting cards from server...", period=2000)
 
             self.sock.sendall(str(1).encode("utf-8"))
 
@@ -141,19 +230,41 @@ class Client(QObject):
 
             response = self.sock.recv(1).decode("utf-8")
             if response != "1":
+                tooltip("❌ Access denied", period=3000)
                 if callback:
                     callback(False, "Access denied or server error")
                 return
 
-            cards = collect_cards(self.sock)
+            tooltip("📦 Downloading card data...", period=3000)
+            print("Starting to collect cards from server...")
+
+            try:
+                cards = collect_cards(self.sock)
+            except Exception as e:
+                tooltip(f"❌ Download error: {str(e)}", period=4000)
+                print(f"Error collecting cards: {e}")
+                if callback:
+                    callback(False, f"Error downloading cards: {str(e)}")
+                return
+
             if not cards:
+                tooltip("ℹ️ No new cards to sync", period=3000)
                 if callback:
                     callback(False, "No cards received from server")
                 return
 
+            total_cards = len(cards)
+            print(f"Successfully downloaded {total_cards} cards")
+            tooltip(f"✅ Downloaded {total_cards} cards. Starting sync...", period=3000)
+
             def on_deck_checked(success):
+                if not success:
+                    tooltip("❌ Deck check failed", period=3000)
+                    if callback:
+                        callback(False, "Deck check failed")
+                    return
+
                 sync_count = 0
-                total_cards = len(cards)
 
                 def on_card_synced(result):
                     nonlocal sync_count
@@ -161,17 +272,59 @@ class Client(QObject):
 
                     if sync_count >= total_cards:
                         print("All cards collected and synced.")
+                        tooltip("🎉 All cards synced successfully!", period=4000)
                         if callback:
                             callback(True, f"Received and synced {sync_count} cards")
 
-                for key, value in cards.items():
-                    sync_card(value, on_card_synced)
+                cards_list = list(cards.items())
+                batch_size = 5  # Reducir el tamaño del lote
+                current_batch = 0
+                total_batches = (total_cards + batch_size - 1) // batch_size
+
+                def process_next_batch():
+                    nonlocal current_batch
+
+                    start_idx = current_batch * batch_size
+                    end_idx = min((current_batch + 1) * batch_size, total_cards)
+
+                    if start_idx >= total_cards:
+                        return
+
+                    batch = cards_list[start_idx:end_idx]
+                    progress_msg = f"⚡ Syncing batch {current_batch + 1}/{total_batches} ({start_idx + 1}-{end_idx} of {total_cards})"
+                    print(progress_msg)
+                    tooltip(progress_msg, period=2000)
+
+                    batch_completed = 0
+
+                    def on_batch_card_synced(result):
+                        nonlocal batch_completed, current_batch
+                        on_card_synced(result)
+                        batch_completed += 1
+
+                        if batch_completed >= len(batch):
+                            current_batch += 1
+                            remaining_batches = total_batches - current_batch
+
+                            if remaining_batches > 0:
+                                tooltip(f"⏳ {remaining_batches} batches remaining...", period=1500)
+                                from aqt.qt import QTimer
+                                QTimer.singleShot(200, process_next_batch)  # Pausa más larga
+
+                    for key, value in batch:
+                        sync_card(value, on_batch_card_synced)
+
+                tooltip(f"🚀 Starting sync of {total_cards} cards in batches of {batch_size}...", period=3000)
+                from aqt.qt import QTimer
+                QTimer.singleShot(500, process_next_batch)  # Pausa inicial
 
             check_for_deck_existence(deck_name, on_deck_checked)
 
         except Exception as e:
             error_msg = f"Error receiving cards: {str(e)}"
+            print(f"Exception in receive_cards: {error_msg}")
             log_error(error_msg)
+            tooltip(f"❌ Error: {str(e)}", period=4000)
             if callback:
                 callback(False, error_msg)
         finally:
@@ -192,16 +345,23 @@ class Client(QObject):
         def on_deck_checked(exists):
             if exists:
                 print("The deck already exists.")
+                from aqt.utils import tooltip
+                tooltip("⚠️ Deck already exists", period=3000)
                 if callback:
                     callback(False, "The deck already exists")
                 return
 
             try:
+                from aqt.utils import tooltip
+                tooltip("📥 Connecting to server...", period=2000)
+
                 if not self.connect_to_server():
+                    tooltip("❌ Failed to connect", period=3000)
                     if callback:
                         callback(False, "Failed to connect to server")
                     return
 
+                tooltip("🔍 Requesting deck from server...", period=2000)
                 self.sock.sendall(str(2).encode("utf-8"))
 
                 username = self.auth_manager.get_username()
@@ -211,6 +371,7 @@ class Client(QObject):
 
                 response = self.sock.recv(1).decode("utf-8")
                 if response != "1":
+                    tooltip("❌ Access denied or deck not found", period=3000)
                     if callback:
                         callback(False, "Access denied or server error")
                     return
@@ -218,15 +379,20 @@ class Client(QObject):
                 deck_name_size = self.sock.recv(self.HEADER).decode("utf-8")
                 deck_name = self.sock.recv(int(deck_name_size)).decode("utf-8")
 
+                tooltip(f"📦 Downloading deck: {deck_name}...", period=3000)
+                print(f"Downloading deck: {deck_name}")
+
                 cards = collect_cards(self.sock)
                 if not cards:
                     print(f"No cards in deck with code {deck_code}, creating empty deck")
+                    tooltip(f"📁 Creating empty deck: {deck_name}", period=3000)
 
                     def on_deck_created(result):
                         update_json(DECKS_CODES_PATH, deck_name, deck_code)
                         update_json(SYNC_FILE_PATH, deck_name, int(time.time()))
 
                         def on_anki_synced(success):
+                            tooltip("✅ Empty deck created!", period=3000)
                             if callback:
                                 callback(True, f"Empty deck '{deck_name}' created successfully")
 
@@ -235,9 +401,14 @@ class Client(QObject):
                     create_deck(deck_name, on_deck_created)
                     return
 
+                total_cards = len(cards)
+                print(f"Downloaded {total_cards} cards for deck: {deck_name}")
+                tooltip(f"✅ Downloaded {total_cards} cards. Creating deck...", period=3000)
+
                 def on_deck_created(result):
                     sync_count = 0
-                    total_cards = len(cards)
+
+                    tooltip(f"🚀 Starting import of {total_cards} cards...", period=3000)
 
                     def on_card_synced(result):
                         nonlocal sync_count
@@ -248,19 +419,59 @@ class Client(QObject):
                             update_json(SYNC_FILE_PATH, deck_name, int(time.time()))
 
                             def on_anki_synced(success):
+                                tooltip("🎉 Deck imported successfully!", period=4000)
                                 if callback:
                                     callback(True, f"Deck '{deck_name}' imported with {sync_count} cards")
 
                             sync_anki(on_anki_synced)
 
-                    for key, value in cards.items():
-                        sync_card(value, on_card_synced)
+                    cards_list = list(cards.items())
+                    batch_size = 20
+                    current_batch = 0
+                    total_batches = (total_cards + batch_size - 1) // batch_size
+
+                    def process_next_batch():
+                        nonlocal current_batch
+
+                        start_idx = current_batch * batch_size
+                        end_idx = min((current_batch + 1) * batch_size, total_cards)
+
+                        if start_idx >= total_cards:
+                            return
+
+                        batch = cards_list[start_idx:end_idx]
+                        progress_msg = f"⚡ Importing batch {current_batch + 1}/{total_batches} ({start_idx + 1}-{end_idx} of {total_cards})"
+                        print(progress_msg)
+                        tooltip(progress_msg, period=2000)
+
+                        batch_completed = 0
+
+                        def on_batch_card_synced(result):
+                            nonlocal batch_completed, current_batch
+                            on_card_synced(result)
+                            batch_completed += 1
+
+                            if batch_completed >= len(batch):
+                                current_batch += 1
+                                remaining_batches = total_batches - current_batch
+
+                                if remaining_batches > 0:
+                                    tooltip(f"⏳ {remaining_batches} batches remaining...", period=1500)
+                                    from aqt.qt import QTimer
+                                    QTimer.singleShot(100, process_next_batch)
+
+                        for key, value in batch:
+                            sync_card(value, on_batch_card_synced)
+
+                    from aqt.qt import QTimer
+                    QTimer.singleShot(500, process_next_batch)
 
                 create_deck(deck_name, on_deck_created)
 
             except Exception as e:
                 error_msg = f"Error receiving deck: {str(e)}"
                 log_error(error_msg)
+                tooltip(f"❌ Import error: {str(e)}", period=4000)
                 if callback:
                     callback(False, error_msg)
             finally:
