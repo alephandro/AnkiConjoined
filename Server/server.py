@@ -39,6 +39,11 @@ class Server:
         self.sock.listen()
         self.json_file = ""
 
+        try:
+            os.makedirs(SERVER_DIR + "/Decks")
+        except FileExistsError:
+            pass
+
         print(f"Server listening on {host}:{port}")
 
         try:
@@ -57,7 +62,7 @@ class Server:
             username = conn.recv(int(username_size)).decode("utf-8")
             deck_code_size = conn.recv(self.HEADER).decode("utf-8")
             deck_code = conn.recv(int(deck_code_size)).decode("utf-8").strip()
-            self.json_file = "./Decks" + deck_code + ".json"
+            self.json_file = "./Decks/" + deck_code + ".json"
 
             match choice:
                 case "0":
@@ -217,6 +222,4 @@ class Server:
 
 
 if __name__ == "__main__":
-    from pathlib import Path
-    Path(SERVER_DIR + "/Decks").mkdir(parents=True, exist_ok=True)
     server = Server()

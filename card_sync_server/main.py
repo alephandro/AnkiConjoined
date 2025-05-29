@@ -67,12 +67,9 @@ def setup_menu():
     logout_action = QAction("Logout", mw)
     qconnect(logout_action.triggered, logout_user)
 
-    settings_action = None
-    if not is_mac:
-        settings_action = QAction("Settings", mw)
+    settings_action = QAction("Settings", mw)
 
-    else:
-        settings_action = QAction("Settings", mw)
+    if is_mac:
 
         def edit_settings():
             from aqt.utils import showInfo
@@ -111,7 +108,10 @@ def setup_menu():
 
             showInfo("Settings updated successfully!")
 
-    qconnect(settings_action.triggered, show_settings_dialog)
+        qconnect(settings_action.triggered, edit_settings)
+
+    else:
+        qconnect(settings_action.triggered, show_settings_dialog)
 
     config_action = QAction("Manual Config", mw)
 
