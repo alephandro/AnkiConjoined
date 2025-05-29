@@ -13,5 +13,6 @@ error_log.txt
 *.sqlite3
 /Server/WebServer/tokens/
 /Server/WebServer/db.sqlite3
+/Server/Decks/
 *__pycache__/
 *.DS_Store
