@@ -23,160 +23,207 @@ The project consists of three main components:
 
 ### Prerequisites
 
-- Anki 2.1.x installed on your computer
 - Python 3.8 or higher
-- Django 5.1.x (for server component)
-- Access to command line/terminal
+- Anki 2.1.x installed on your computer
+- Command line/terminal access
 
-### Client Add-on Installation
+### Step 1: Clone and Set Up the Project
 
-1. **Download the add-on files**:
-   - Download the `card_sync_server` folder from this repository
+```bash
+# Clone the repository
+git clone <repository-url>
+cd AnkiConjoined
 
-2. **Install in Anki**:
+# Create and activate virtual environment
+python3 -m venv .venv
+
+# Activate virtual environment
+# On macOS/Linux:
+source .venv/bin/activate
+# On Windows:
+# .venv\Scripts\activate
+
+# Install Python dependencies
+pip install django requests
+```
+
+### Step 2: Set Up the Django Web Server
+
+```bash
+# Navigate to Django project
+cd Server/WebServer
+
+# Set up database
+python manage.py migrate
+
+# Create admin user (you'll use this to log in)
+python manage.py createsuperuser
+
+# Test the setup
+python manage.py check
+```
+
+### Step 3: Install the Anki Add-on
+
+1. **Find your Anki add-ons folder**:
    - Open Anki
-   - Go to Tools > Add-ons > Open Add-ons Folder
-   - Create a new folder called `anki_conjoined` (or similar)
-   - Copy the contents of the `card_sync_server` folder into this new folder
-   - Restart Anki
+   - Go to Tools > Add-ons > View Files
+   - This opens your add-ons directory
 
-3. **Install dependencies**:
-   - Make sure the following Python packages are installed:
+2. **Install the add-on**:
+   - In the add-ons directory, create a new folder called `anki_conjoined`
+   - Copy ALL contents from the `card_sync_server` folder into this new folder
+   - The structure should look like:
      ```
-     pip install requests
+     anki_conjoined/
+     ├── __init__.py
+     ├── main.py
+     ├── client.py
+     ├── auth_manager.py
+     ├── login_dialog.py
+     ├── settings_dialog.py
+     ├── testAnkiConnected.py
+     └── DataManagement/
+         └── random_words
+     
      ```
 
-4. **Verify installation**:
-   - After restarting Anki, you should see a new "Card Sync" menu in Anki's main window
+3. **Restart Anki** - You should now see a "Card Sync" menu
 
-### Server Installation (Optional, for self-hosting)
+### Step 4: Run the Servers
 
-#### Socket Server
+⚠️ **Important**: You need to run BOTH servers simultaneously in separate terminals.
 
-1. **Set up the socket server**:
-   ```bash
-   # Navigate to the Server directory
-   cd Server
-   
-   # If using a virtual environment (recommended)
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   
-   # Install dependencies
-   pip install django
-   
-   # Run the server
-   python server.py
-   ```
+**Terminal 1 - Django Web Server:**
+```bash
+cd AnkiConjoined/Server/WebServer
+source ../../.venv/bin/activate  # Activate virtual environment
+python manage.py runserver
+```
+- This runs the web interface at http://127.0.0.1:8000/
+- Keep this terminal open
 
-   To change the server address and port, modify the Server class initialization in the `server.py` file:
-   
-   ```python
-   # Find this line at the bottom of server.py:
-   if __name__ == "__main__":
-       server = Server()  # Default is localhost:9999
-   
-   # Change it to specify your desired host and port:
-   if __name__ == "__main__":
-       server = Server(host="0.0.0.0", port=8888)  # Example: listen on all interfaces, port 8888
-   ```
-   
-   Common host settings:
-   - `"localhost"` or `"127.0.0.1"`: Only accept connections from the same machine
-   - `"0.0.0.0"`: Accept connections from any network interface (needed for remote access)
-   - Specific IP: Only accept connections from that specific interface
+**Terminal 2 - Socket Server:**
+```bash
+cd AnkiConjoined/Server
+source ../.venv/bin/activate  # Activate virtual environment
+python server.py
+```
+- This runs the sync server on localhost:9999
+- Keep this terminal open
 
-#### Web Server
+### Step 5: Create Your Account
 
-1. **Set up the Django server**:
-   ```bash
-   # Navigate to the WebServer directory
-   cd Server/WebServer
-   
-   # If using a virtual environment (recommended)
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   
-   # Install dependencies
-   pip install django
-   
-   # Apply migrations
-   python manage.py migrate
-   
-   # Create a superuser
-   python manage.py createsuperuser
-   
-   # Run the development server
-   python manage.py runserver
-   ```
+1. Open http://127.0.0.1:8000/ in your web browser
+2. Click "Register" and create a user account
+3. Log in to verify your account works
 
-   To change the Django web server address and port:
-   ```bash
-   # Specify the IP address and port
-   python manage.py runserver 0.0.0.0:8000  # Listen on all interfaces, port 8000
-   
-   # Or use a specific IP
-   python manage.py runserver 192.168.1.100:8000  # Listen on specific IP, port 8000
-   ```
-   
-   Note: The Django development server is not recommended for production use. For production, consider using Gunicorn, uWSGI, or another WSGI server with Nginx or Apache.
+### Step 6: Configure Anki Add-on
 
-2. **Access the web interface**:
-   - Open your browser and navigate to `http://127.0.0.1:8000/`
-   - Log in with the superuser credentials you created
+1. In Anki, click the "Card Sync" menu
+2. Select "Settings" and configure:
+   - Socket Server Host: `127.0.0.1`
+   - Socket Server Port: `9999`
+   - Web Server URL: `http://127.0.0.1:8000`
+3. Click "Save"
 
-## Client-Side Usage
+### Step 7: Test the Connection
 
-### Configuring the Add-on
+1. In Anki, go to "Card Sync" > "Login"
+2. Enter the username and password you created in Step 5
+3. If successful, you'll see a "Login successful" message
 
-1. **Access the settings**:
-   - In Anki, click on the "Card Sync" menu
-   - Select "Settings"
-   - Configure the following:
-     - Socket Server Host (default: 127.0.0.1)
-     - Socket Server Port (default: 9999)
-     - Web Server URL (default: http://127.0.0.1:8000)
-   - Click "Save" to apply your changes
-   
-   This allows you to connect to a server running on a different machine or port. For example, if your server is running on another computer with IP 192.168.1.100 and you've configured the socket server to run on port 8888, you would enter:
-   - Socket Server Host: 192.168.1.100
-   - Socket Server Port: 8888
+## Usage
 
-2. **Login to your account**:
-   - In Anki, click on the "Card Sync" menu
-   - Select "Login"
-   - Enter your username and password
+### Basic Workflow
 
-### Syncing Decks
+1. **Create a deck in Anki** with some cards
+2. **Upload to server**: Card Sync > Sync with Server > Select your deck > Choose "create"
+3. **Share with others**: Give them your deck code from the web interface
+4. **Import shared deck**: Card Sync > Sync with Server > Choose "new" > Enter deck code
+5. **Sync changes**: Card Sync > Sync with Server > Choose "update" to sync both ways
 
-The add-on supports various synchronization operations:
+### Web Interface Features
 
-1. **Create a new deck on the server**:
-   - Create a deck in Anki
-   - From the "Card Sync" menu, select "Sync with Server"
-   - Choose your deck and the "create" action
-   - The deck will be uploaded to the server and made available to you in the web interface
+- View and manage all your decks
+- Share deck codes with other users
+- Manage user permissions (Creator, Manager, Writer, Reader)
+- Edit deck descriptions
 
-2. **Download changes from the server**:
-   - From the "Card Sync" menu, select "Sync with Server"
-   - Choose your deck and the "receive" action
-   - Any new or updated cards will be downloaded from the server
+## Troubleshooting
 
-3. **Full synchronization (both ways)**:
-   - From the "Card Sync" menu, select "Sync with Server"
-   - Choose your deck and the "update" action
-   - This will both upload your changes and download others' changes
+### "No such file or directory" Error
+```bash
+# Make sure you created the virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+pip install django requests
+```
 
-4. **Import a new deck using a code**:
-   - Get a deck code from another user (from the web interface)
-   - From the "Card Sync" menu, select "Sync with Server"
-   - Choose the "new" action and enter the deck code
-   - The deck will be downloaded and created in your Anki collection
+### Django Server Won't Start
+```bash
+cd Server/WebServer
+python manage.py migrate
+python manage.py check
+```
 
-5. **Delete a deck**:
-   - From the "Card Sync" menu, select "Sync with Server"
-   - Choose your deck and the "delete" action
-   - This will remove the deck from your synchronized decks list
+### Anki Add-on Not Showing
+1. Make sure you copied ALL files from `card_sync_server/` 
+2. Check that the folder is named correctly in your add-ons directory
+3. Restart Anki completely
+
+### Connection Errors
+1. Ensure both servers are running (Steps 4)
+2. Check firewall settings
+3. Verify server addresses in Anki settings match your running servers
+
+### Authentication Issues
+1. Create account through web interface first (Step 5)
+2. Use exact same credentials in Anki
+3. Make sure Django server is running
+
+## Advanced Configuration
+
+### Custom Server Setup
+
+You can modify server settings by editing the configuration files:
+
+#### Socket Server Configuration
+To change the socket server host and port, modify the Server class initialization in `server.py`:
+
+```python
+# Find this line at the bottom of server.py:
+if __name__ == "__main__":
+    server = Server()  # Default is localhost:9999
+
+# Change it to specify your desired host and port:
+if __name__ == "__main__":
+    server = Server(host="0.0.0.0", port=8888)  # Example: listen on all interfaces, port 8888
+```
+
+Common host settings:
+- `"localhost"` or `"127.0.0.1"`: Only accept connections from the same machine
+- `"0.0.0.0"`: Accept connections from any network interface (needed for remote access)
+- Specific IP: Only accept connections from that specific interface
+
+#### Django Web Server Configuration
+
+To change the Django web server address and port:
+```bash
+# Specify the IP address and port
+python manage.py runserver 0.0.0.0:8000  # Listen on all interfaces, port 8000
+
+# Or use a specific IP
+python manage.py runserver 192.168.1.100:8000  # Listen on specific IP, port 8000
+```
+
+### Managing Decks via Web Interface
+
+The web interface provides additional features:
+
+1. **User Management**: Add or remove users from decks
+2. **Permission Control**: Change user roles and access levels
+3. **Deck Description**: Update deck information and descriptions
 
 ### Working with Collaborative Decks
 
@@ -193,58 +240,24 @@ When multiple users work on the same deck:
    - When syncing, only newer or modified cards are transferred
    - Each card maintains a unique ID (stable_uid) to track it across systems
 
-## Troubleshooting
+## Development Setup
 
-### Common Issues
+### IDE Configuration
 
-1. **Connection errors**:
-   - Ensure the server is running
-   - Check your firewall settings
-   - Verify the host and port in the settings
-
-2. **Authentication issues**:
-   - Make sure you've created an account on the web interface
-   - Verify your username and password
-
-3. **AnkiConnect errors**:
-   - Ensure you have AnkiConnect add-on installed
-   - Restart Anki after installation
-
-### Logs
-
-- Client-side errors are logged to a file named `error_log.txt` in the add-on directory
-- Server logs appear in the terminal where the server is running
-- Django logs can be found in the Django development server console
-
-## Advanced Features
-
-### Custom Server Setup
-
-You can set up your own server by modifying the server host and port in the settings. This allows you to:
-
-1. Run the server on your local network for home/office use
-2. Deploy to a cloud server for wider access
-3. Customize authentication and security settings
-
-### Managing Decks via Web Interface
-
-The web interface provides additional features:
-
-1. **User Management**: Add or remove users from decks
-2. **Permission Control**: Change user roles and access levels
-3. **Deck Description**: Update deck information and descriptions
+If using PyCharm, VS Code, etc.:
+1. Set Python interpreter to: `<project-path>/.venv/bin/python`
+2. Set working directory to appropriate folder:
+   - Django: `Server/WebServer`
+   - Socket Server: `Server`
+   - Anki Add-on: Test within Anki
 
 ## Security Considerations
 
 - The communication between client and server is not encrypted by default
 - Passwords are stored securely in the Django database
-- For production use, consider setting up HTTPS and proper security measures
+- Default setup is for local development only
+- For production use, configure proper security settings and consider using HTTPS
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Acknowledgments
-
-- Anki for the fantastic flashcard platform
-- The Django team for the web framework
