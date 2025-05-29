@@ -117,7 +117,7 @@ def deck_creation_form(request):
                 deck.save()
 
                 empty = {}
-                path = f"{project_root}/Server/{deck.deck_code}.json"
+                path = f"{project_root}/Server/Decks/{deck.deck_code}.json"
                 with open(path, "w") as file:
                     json.dump(empty, file)
 
@@ -136,7 +136,7 @@ def deck_creation_form(request):
                 print(f"Error in deck creation process: {str(e)}")
                 try:
                     if 'deck' in locals():
-                        path = f"{project_root}/Server/{deck.deck_code}.json"
+                        path = f"{project_root}/Server/Decks/{deck.deck_code}.json"
                         if os.path.exists(path):
                             os.remove(path)
                         deck.delete()
@@ -175,7 +175,7 @@ def save_deck_local(deck_name, deck_desc):
     deck.save()
 
     empty = {}
-    path = f"{project_root}/Server/{deck.deck_code}.json"
+    path = f"{project_root}/Server/Decks/{deck.deck_code}.json"
     with open(path, "w") as file:
         json.dump(empty, file)
 
@@ -245,7 +245,7 @@ def delete_deck(request, deck_code):
 
                 Deck.objects.filter(deck_code=deck_code).delete()
 
-                path = f"{project_root}/Server/{deck_code}.json"
+                path = f"{project_root}/Server/Decks/{deck_code}.json"
                 if os.path.exists(path):
                     os.remove(path)
 
