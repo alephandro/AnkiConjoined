@@ -1,6 +1,4 @@
 import os
-import requests
-import json
 from aqt.qt import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel,
     QLineEdit, QPushButton, QMessageBox, QFormLayout,

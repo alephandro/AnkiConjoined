@@ -1,6 +1,5 @@
 import socket
 import threading
-import json
 import os
 import sys
 import django
