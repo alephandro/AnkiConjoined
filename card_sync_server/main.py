@@ -1,7 +1,7 @@
 from aqt import mw
 from aqt.qt import *
 from aqt.utils import showInfo, showWarning, tooltip, qconnect
-import os, platform
+import os
 
 from .client import Client, workflow_simulation
 from .login_dialog import LoginDialog
@@ -10,7 +10,6 @@ from .settings_dialog import SettingsDialog
 
 ADDON_DIR = os.path.dirname(__file__)
 ERROR_LOG_PATH = os.path.join(ADDON_DIR, "error_log.txt")
-is_mac = platform.system() == "Darwin"
 
 def log_error(message):
     """Log errors to file for debugging"""
@@ -53,6 +52,9 @@ auth_manager = AuthManager(ADDON_DIR)
 
 
 def setup_menu():
+    import platform
+    is_mac = platform.system() == "Darwin"
+
     main_menu = QMenu('Card Sync', mw)
 
     sync_action = QAction("Sync with Server", mw)
@@ -67,9 +69,8 @@ def setup_menu():
     logout_action = QAction("Logout", mw)
     qconnect(logout_action.triggered, logout_user)
 
-    settings_action = QAction("Settings", mw)
-
     if is_mac:
+        edit_action = QAction("Edit Settings", mw)
 
         def edit_settings():
             from aqt.utils import showInfo
@@ -108,9 +109,10 @@ def setup_menu():
 
             showInfo("Settings updated successfully!")
 
-        qconnect(settings_action.triggered, edit_settings)
+        qconnect(edit_action.triggered, edit_settings)
 
     else:
+        settings_action = QAction("Settings", mw)
         qconnect(settings_action.triggered, show_settings_dialog)
 
     config_action = QAction("Manual Config", mw)
@@ -129,8 +131,8 @@ def setup_menu():
                 f"Settings are stored in your Anki user profile.")
 
         showInfo(info)
-    qconnect(config_action.triggered, show_config_info)
 
+    qconnect(config_action.triggered, show_config_info)
 
     main_menu.addAction(login_action)
     main_menu.addAction(logout_action)
@@ -138,7 +140,12 @@ def setup_menu():
     main_menu.addAction(sync_action)
     main_menu.addAction(test_action)
     main_menu.addSeparator()
-    main_menu.addAction(settings_action)
+
+    if is_mac:
+        main_menu.addAction(edit_action)
+    else:
+        main_menu.addAction(settings_action)
+
     main_menu.addAction(config_action)
 
     mw.form.menubar.addMenu(main_menu)
